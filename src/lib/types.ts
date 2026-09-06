@@ -158,6 +158,34 @@ export interface MarketTrendSkill {
   marketInsight: string;
 }
 
+export interface MarketDemandItem {
+  technology: string;
+  category: "Frontend" | "Backend" | "Cloud/DevOps" | "AI/ML";
+  openPositions: number;
+  trend: "surging" | "stable" | "declining";
+  growthRatePercent: number;
+  topLocations: string[];
+  averageSalaryLPA: number;
+  marketInsight: string;
+}
+
+export interface MarketDemandResponse {
+  source: "live_adzuna" | "simulated_cache";
+  timestamp: string;
+  items: MarketDemandItem[];
+  summary: {
+    totalPositionsTracked: number;
+    topSurgingTech: string;
+    topHiringHub: string;
+    activeCategoryCount: number;
+  };
+  cityBreakdown: {
+    city: string;
+    openPositions: number;
+    topTech: string;
+  }[];
+}
+
 export type PersonaType = "student" | "recruiter" | "faculty";
 
 export interface PersonaProfile {

@@ -1,160 +1,228 @@
-"use client";
+﻿"use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  TrendingUp,
-  TrendingDown,
   Activity,
   Flame,
-  AlertTriangle,
-  Layers,
   ArrowUpRight,
-  ArrowDownRight,
-  Sparkles,
+  MapPin,
+  RefreshCw,
+  Layers,
 } from "lucide-react";
-import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs } from "@/components/ui/tabs";
-import { Tooltip } from "@/components/ui/tooltip";
 import { MarketTrendChart } from "@/components/charts/market-trend-chart";
-import { MARKET_TRENDS_DATA } from "@/lib/market-data";
-import { MarketTrendSkill } from "@/lib/types";
+import { MarketDemandItem, MarketDemandResponse } from "@/lib/types";
 
 export default function MarketDemandRadarPage() {
-  const [activeMetric, setActiveMetric] = useState<
-    "growthRatePercentage" | "activeOpeningsCount" | "averageSalaryLPA"
-  >("growthRatePercentage");
+  const [data, setData] = useState<MarketDemandResponse | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [activeMetric, setActiveMetric] = useState<"openings" | "growth" | "salary">("openings");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
-  const categories = ["All", "AI & ML", "Web & Cloud", "Languages", "Legacy / Obsolete"];
+  const categories = ["All", "Frontend", "Backend", "Cloud/DevOps", "AI/ML"];
 
-  const filteredData = MARKET_TRENDS_DATA.filter((item) => {
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchMarketData() {
+      try {
+        setIsLoading(true);
+        const res = await fetch("/api/market");
+        if (res.ok) {
+          const json: MarketDemandResponse = await res.json();
+          if (isMounted) setData(json);
+        }
+      } catch (err) {
+        console.error("Failed to fetch market data:", err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+    fetchMarketData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const items: MarketDemandItem[] = data?.items || [];
+  const source = data?.source || "simulated_cache";
+  const summary = data?.summary || {
+    totalPositionsTracked: 180000,
+    topSurgingTech: "LangChain (+210%)",
+    topHiringHub: "Bengaluru (42%)",
+    activeCategoryCount: 4,
+  };
+  const cityBreakdown = data?.cityBreakdown || [
+    { city: "Bengaluru", openPositions: 84500, topTech: "Next.js & LangChain" },
+    { city: "Hyderabad", openPositions: 51200, topTech: "AWS & Python" },
+    { city: "Pune", openPositions: 36400, topTech: "Go & Docker" },
+    { city: "Delhi/NCR", openPositions: 28900, topTech: "PyTorch & Rust" },
+  ];
+
+  const filteredItems = items.filter((item) => {
     if (selectedCategory === "All") return true;
     return item.category === selectedCategory;
   });
 
-  const surgingSkills = MARKET_TRENDS_DATA.filter((s) => s.trendStatus === "Surging");
-  const deprecatingSkills = MARKET_TRENDS_DATA.filter((s) => s.trendStatus === "Deprecating");
+  const surgingItems = items.filter((s) => s.trend === "surging");
+  const stableOrDecliningItems = items.filter((s) => s.trend !== "surging");
 
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Live Industry Market Demand Radar"
-        subtitle="Real-time algorithmic demand telemetry across 12,000+ Indian tech job postings. Direct comparison between accelerating skills vs. deprecated tech debt."
-        badgeText="Module 10"
-      />
-
-      {/* Top Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-indigo-500/30 bg-gradient-to-br from-slate-900 to-indigo-950/20">
-          <div className="flex items-center justify-between pb-1">
-            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
-              Fastest Accelerating Skill
-            </span>
-            <Flame className="h-4 w-4 text-amber-400" />
+    <div className="space-y-4">
+      {/* Page Header with Live Telemetry Tag */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-base sm:text-lg font-bold tracking-tight text-zinc-100">
+              Module 10 â€¢ Market Demand Radar
+            </h1>
+            {/* Telemetry Status Tag */}
+            {source === "live_adzuna" ? (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded border border-emerald-500/30 bg-zinc-900 text-emerald-400 font-mono text-[10px] font-semibold tracking-wider">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                LIVE TELEMETRY: ADZUNA (IN)
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded border border-zinc-800 bg-zinc-900 text-zinc-400 font-mono text-[10px] font-medium tracking-wider">
+                <span className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
+                BENCHMARK CACHE
+              </span>
+            )}
           </div>
-          <p className="text-xl font-bold text-white mt-1">GenAI & LLM Ops</p>
-          <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-mono mt-2">
-            <ArrowUpRight className="h-3.5 w-3.5" />
-            <span>+182% YoY Hiring Surge</span>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            Algorithmic hiring telemetry tracking Indian technology vacancies across Bengaluru, Hyderabad, Pune, and Delhi/NCR.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 font-mono text-[10px] text-zinc-500 shrink-0">
+          <span>Cache TTL: 24h</span>
+          <kbd className="text-[9px]">8</kbd>
+        </div>
+      </div>
+
+      {/* Top 3 Summary Stats Strip (Monochrome Raycast Style) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <Card>
+          <div className="flex items-center justify-between pb-1">
+            <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider font-semibold">
+              Fastest Surging Stack
+            </span>
+            <Flame className="h-3.5 w-3.5 text-zinc-400" />
+          </div>
+          <p className="text-lg font-bold font-mono text-zinc-100 mt-1">{summary.topSurgingTech}</p>
+          <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-mono mt-1">
+            <ArrowUpRight className="h-3 w-3" />
+            <span>YoY Hiring Acceleration</span>
           </div>
         </Card>
 
-        <Card className="border-slate-800 bg-slate-900/60">
+        <Card>
           <div className="flex items-center justify-between pb-1">
-            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
-              Top Entry CTC Compensation
+            <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider font-semibold">
+              Primary Hiring Hub
             </span>
-            <Sparkles className="h-4 w-4 text-emerald-400" />
+            <MapPin className="h-3.5 w-3.5 text-zinc-400" />
           </div>
-          <p className="text-xl font-bold text-white mt-1">Rust & Systems</p>
-          <div className="flex items-center gap-1.5 text-xs text-indigo-300 font-mono mt-2">
-            <span>Avg ₹28.0 LPA Base</span>
+          <p className="text-lg font-bold font-mono text-zinc-100 mt-1">{summary.topHiringHub}</p>
+          <div className="flex items-center gap-1 text-[10px] text-zinc-400 font-mono mt-1">
+            <span>Highest absorption rate for freshers</span>
           </div>
         </Card>
 
-        <Card className="border-rose-500/30 bg-rose-950/10">
+        <Card>
           <div className="flex items-center justify-between pb-1">
-            <span className="text-xs text-rose-400 font-semibold uppercase tracking-wider">
-              Most Deprecated Framework
+            <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider font-semibold">
+              Open Positions Tracked
             </span>
-            <AlertTriangle className="h-4 w-4 text-rose-400" />
+            <Activity className="h-3.5 w-3.5 text-zinc-400" />
           </div>
-          <p className="text-xl font-bold text-white mt-1">AngularJS & jQuery</p>
-          <div className="flex items-center gap-1.5 text-xs text-rose-400 font-mono mt-2">
-            <ArrowDownRight className="h-3.5 w-3.5" />
-            <span>-62% Active Postings</span>
+          <p className="text-lg font-bold font-mono text-zinc-100 mt-1">
+            {summary.totalPositionsTracked.toLocaleString()} Vacancies
+          </p>
+          <div className="flex items-center gap-1 text-[10px] text-zinc-400 font-mono mt-1">
+            <span>Across 4 core technical pillars</span>
           </div>
         </Card>
       </div>
 
-      {/* Chart Section */}
-      <Card className="border-slate-800">
-        <CardHeader className="pb-2 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800">
+      {/* City Hub Vacancy Distribution Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {cityBreakdown.map((hub) => (
+          <div
+            key={hub.city}
+            className="rounded border border-zinc-800 bg-zinc-900/30 p-2 text-xs font-mono"
+          >
+            <div className="flex items-center justify-between text-zinc-400">
+              <span className="font-semibold text-zinc-200">{hub.city}</span>
+              <span className="text-[10px] text-zinc-500">
+                {hub.openPositions.toLocaleString()}
+              </span>
+            </div>
+            <p className="text-[9px] text-zinc-500 mt-0.5 truncate">Top: {hub.topTech}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Main Chart Section */}
+      <Card>
+        <CardHeader className="pb-2 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-zinc-800">
           <div>
-            <CardTitle className="text-base text-white flex items-center gap-2">
-              <Activity className="h-4 w-4 text-indigo-400" />
-              <span>Technology Trajectory Analytics</span>
+            <CardTitle className="text-xs font-mono uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+              <Layers className="h-3.5 w-3.5 text-zinc-300" />
+              <span>Technology Vacancy Distribution</span>
             </CardTitle>
-            <CardDescription>
-              Comparing tech growth, salary bands, and market absorption across Indian employers
+            <CardDescription className="text-[11px] text-zinc-500">
+              Real-world open position counts across Frontend, Backend, Cloud/DevOps, and AI/ML
             </CardDescription>
           </div>
 
           {/* Metric Selector Tabs */}
-          <div className="flex flex-wrap items-center gap-2">
-            <Tooltip content="Year-over-Year hiring expansion percentage across Naukri & LinkedIn postings">
-              <button
-                onClick={() => setActiveMetric("growthRatePercentage")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  activeMetric === "growthRatePercentage"
-                    ? "bg-indigo-600 text-white shadow border border-indigo-500"
-                    : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
-                }`}
-              >
-                YoY Growth (%)
-              </button>
-            </Tooltip>
-            <Tooltip content="Total currently listed vacancy openings across verified Indian technology employers">
-              <button
-                onClick={() => setActiveMetric("activeOpeningsCount")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  activeMetric === "activeOpeningsCount"
-                    ? "bg-indigo-600 text-white shadow border border-indigo-500"
-                    : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
-                }`}
-              >
-                Active Openings
-              </button>
-            </Tooltip>
-            <Tooltip content="Average CTC compensation bracket for junior and fresher candidates in INR Lakhs Per Annum">
-              <button
-                onClick={() => setActiveMetric("averageSalaryLPA")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  activeMetric === "averageSalaryLPA"
-                    ? "bg-indigo-600 text-white shadow border border-indigo-500"
-                    : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
-                }`}
-              >
-                Avg Salary (LPA ₹)
-              </button>
-            </Tooltip>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setActiveMetric("openings")}
+              className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                activeMetric === "openings"
+                  ? "bg-zinc-900 text-zinc-100 border border-zinc-800 font-semibold"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
+              }`}
+            >
+              Openings
+            </button>
+            <button
+              onClick={() => setActiveMetric("growth")}
+              className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                activeMetric === "growth"
+                  ? "bg-zinc-900 text-zinc-100 border border-zinc-800 font-semibold"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
+              }`}
+            >
+              YoY Growth (%)
+            </button>
+            <button
+              onClick={() => setActiveMetric("salary")}
+              className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                activeMetric === "salary"
+                  ? "bg-zinc-900 text-zinc-100 border border-zinc-800 font-semibold"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
+              }`}
+            >
+              Salary (LPA â‚¹)
+            </button>
           </div>
         </CardHeader>
 
-        <CardContent className="pt-4 space-y-4">
+        <CardContent className="pt-3 space-y-3">
           {/* Category Filter Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-            <span className="text-slate-400 font-medium pr-1">Filter:</span>
+          <div className="flex items-center gap-1.5 overflow-x-auto text-xs font-mono">
+            <span className="text-zinc-500 text-[10px] uppercase tracking-wider pr-1">Filter:</span>
             {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
+                className={`px-2 py-0.5 rounded text-[11px] transition-colors ${
                   selectedCategory === cat
-                    ? "bg-slate-800 text-indigo-300 font-semibold border border-slate-700"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-zinc-900 text-zinc-100 border border-zinc-800 font-semibold"
+                    : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
                 {cat}
@@ -162,44 +230,58 @@ export default function MarketDemandRadarPage() {
             ))}
           </div>
 
-          <MarketTrendChart skills={filteredData} metric={activeMetric} />
+          {isLoading ? (
+            <div className="h-72 w-full flex items-center justify-center text-xs font-mono text-zinc-500">
+              <RefreshCw className="h-4 w-4 animate-spin mr-2 text-zinc-400" />
+              Ingesting Market Telemetry...
+            </div>
+          ) : (
+            <MarketTrendChart skills={filteredItems} metric={activeMetric} />
+          )}
         </CardContent>
       </Card>
 
-      {/* Two Column Deep Dive: Surging vs Obsolete */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Surging Skills Table */}
-        <Card className="border-emerald-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/10">
-          <CardHeader className="pb-3 border-b border-slate-800">
+      {/* Two Column Breakdown: Accelerating vs Core/Legacy */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-1">
+        {/* Surging Skills */}
+        <Card>
+          <CardHeader className="pb-2 border-b border-zinc-800">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-emerald-400" />
-                <CardTitle className="text-sm text-emerald-400">
-                  Surging & High-Demand Technologies
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <CardTitle className="text-xs font-mono uppercase tracking-wider text-zinc-300">
+                  Surging Technologies (+40% YoY)
                 </CardTitle>
               </div>
               <Badge variant="success" size="sm" dot>
-                High Hiring Velocity
+                High Velocity
               </Badge>
             </div>
           </CardHeader>
 
-          <CardContent className="space-y-3 pt-3 text-xs">
-            {surgingSkills.slice(0, 5).map((skill) => (
+          <CardContent className="divide-y divide-zinc-800 pt-0">
+            {surgingItems.slice(0, 5).map((item) => (
               <div
-                key={skill.skill}
-                className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between"
+                key={item.technology}
+                className="py-2 px-1 flex items-center justify-between text-xs"
               >
                 <div>
-                  <p className="font-bold text-slate-100">{skill.skill}</p>
-                  <p className="text-[10px] text-slate-400 italic mt-0.5">{skill.marketInsight}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-zinc-200">{item.technology}</p>
+                    <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-zinc-900 text-zinc-500 border border-zinc-800">
+                      {item.category}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 font-mono mt-0.5">
+                    Hubs: {item.topLocations.join(", ")}
+                  </p>
                 </div>
                 <div className="text-right font-mono shrink-0 pl-2">
                   <span className="text-xs font-bold text-emerald-400">
-                    +{skill.growthRatePercentage}%
+                    +{item.growthRatePercent}%
                   </span>
-                  <span className="text-[10px] text-slate-400 block">
-                    {skill.activeOpeningsCount.toLocaleString()} jobs
+                  <span className="text-[10px] text-zinc-500 block">
+                    {item.openPositions.toLocaleString()} jobs
                   </span>
                 </div>
               </div>
@@ -207,38 +289,45 @@ export default function MarketDemandRadarPage() {
           </CardContent>
         </Card>
 
-        {/* Deprecating Skills Table */}
-        <Card className="border-rose-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-rose-950/10">
-          <CardHeader className="pb-3 border-b border-slate-800">
+        {/* Stable / Core Stacks */}
+        <Card>
+          <CardHeader className="pb-2 border-b border-zinc-800">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <TrendingDown className="h-4 w-4 text-rose-400" />
-                <CardTitle className="text-sm text-rose-400">
-                  Sunset & Declining Technologies (Tech Debt)
+                <span className="h-2 w-2 rounded-full bg-zinc-500" />
+                <CardTitle className="text-xs font-mono uppercase tracking-wider text-zinc-300">
+                  Baseline Enterprise Stacks
                 </CardTitle>
               </div>
-              <Badge variant="danger" size="sm" dot>
-                Curriculum Risk
+              <Badge variant="default" size="sm" dot>
+                Core Volume
               </Badge>
             </div>
           </CardHeader>
 
-          <CardContent className="space-y-3 pt-3 text-xs">
-            {deprecatingSkills.map((skill) => (
+          <CardContent className="divide-y divide-zinc-800 pt-0">
+            {stableOrDecliningItems.slice(0, 5).map((item) => (
               <div
-                key={skill.skill}
-                className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between"
+                key={item.technology}
+                className="py-2 px-1 flex items-center justify-between text-xs"
               >
                 <div>
-                  <p className="font-bold text-slate-100">{skill.skill}</p>
-                  <p className="text-[10px] text-slate-400 italic mt-0.5">{skill.marketInsight}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-zinc-200">{item.technology}</p>
+                    <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-zinc-900 text-zinc-500 border border-zinc-800">
+                      {item.category}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 font-mono mt-0.5">
+                    Hubs: {item.topLocations.join(", ")}
+                  </p>
                 </div>
                 <div className="text-right font-mono shrink-0 pl-2">
-                  <span className="text-xs font-bold text-rose-400">
-                    {skill.growthRatePercentage}%
+                  <span className="text-xs font-medium text-zinc-300">
+                    +{item.growthRatePercent}%
                   </span>
-                  <span className="text-[10px] text-slate-400 block">
-                    {skill.activeOpeningsCount.toLocaleString()} jobs
+                  <span className="text-[10px] text-zinc-500 block">
+                    {item.openPositions.toLocaleString()} jobs
                   </span>
                 </div>
               </div>

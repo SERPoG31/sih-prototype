@@ -11,11 +11,21 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { MarketTrendSkill } from "@/lib/types";
+import { MarketTrendSkill, MarketDemandItem } from "@/lib/types";
+
+type UnifiedMarketItem = {
+  name: string;
+  category: string;
+  openings: number;
+  growth: number;
+  salary: number;
+  trend: "surging" | "stable" | "declining";
+  insight?: string;
+};
 
 interface MarketTrendChartProps {
-  skills: MarketTrendSkill[];
-  metric: "growthRatePercentage" | "activeOpeningsCount" | "averageSalaryLPA";
+  skills: (MarketTrendSkill | MarketDemandItem)[];
+  metric: "growth" | "openings" | "salary" | "growthRatePercentage" | "activeOpeningsCount" | "averageSalaryLPA" | "openPositions" | "growthRatePercent";
 }
 
 const emptySubscribe = () => () => {};
@@ -25,69 +35,107 @@ export function MarketTrendChart({ skills, metric }: MarketTrendChartProps) {
 
   if (!isMounted) {
     return (
-      <div className="h-72 w-full flex items-center justify-center text-xs text-slate-500 font-mono">
-        Loading Market Analytics Engine...
+      <div className="h-72 w-full flex items-center justify-center text-xs text-zinc-500 font-mono">
+        Initializing Telemetry Chart...
       </div>
     );
   }
 
+  // Normalize data across MarketDemandItem and MarketTrendSkill
+  const data: UnifiedMarketItem[] = skills.map((item) => {
+    const isDemandItem = "technology" in item;
+    const name = isDemandItem ? item.technology : item.skill;
+    const openings = isDemandItem ? item.openPositions : item.activeOpeningsCount;
+    const growth = isDemandItem ? item.growthRatePercent : item.growthRatePercentage;
+    const salary = item.averageSalaryLPA || 18.0;
+    const trend: "surging" | "stable" | "declining" = isDemandItem
+      ? item.trend
+      : item.trendStatus === "Surging"
+      ? "surging"
+      : item.trendStatus === "Deprecating"
+      ? "declining"
+      : "stable";
+
+    return {
+      name,
+      category: item.category,
+      openings,
+      growth,
+      salary,
+      trend,
+      insight: item.marketInsight,
+    };
+  });
+
+  // Map metric key to data property
+  const activeKey =
+    metric === "salary" || metric === "averageSalaryLPA"
+      ? "salary"
+      : metric === "growth" || metric === "growthRatePercent" || metric === "growthRatePercentage"
+      ? "growth"
+      : "openings";
+
   const metricLabels = {
-    growthRatePercentage: "YoY Growth (%)",
-    activeOpeningsCount: "Active Indian Tech Openings",
-    averageSalaryLPA: "Average Fresher/Junior CTC (LPA ₹)",
+    growth: "YoY Growth Rate (%)",
+    openings: "Active Open Vacancies (IN)",
+    salary: "Avg CTC Compensation (LPA ₹)",
   };
 
   return (
-    <div className="h-80 w-full">
+    <div className="h-72 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
-          data={skills}
+          data={data}
           margin={{ top: 10, right: 10, left: 0, bottom: 25 }}
           layout="horizontal"
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+          <CartesianGrid strokeDasharray="2 2" stroke="#27272a" vertical={false} />
           <XAxis
-            dataKey="skill"
-            tick={{ fill: "#94a3b8", fontSize: 10 }}
+            dataKey="name"
+            tick={{ fill: "#a1a1aa", fontSize: 10, fontFamily: "monospace" }}
             angle={-25}
             textAnchor="end"
             interval={0}
           />
-          <YAxis tick={{ fill: "#64748b", fontSize: 10 }} stroke="#334155" />
+          <YAxis
+            tick={{ fill: "#71717a", fontSize: 10, fontFamily: "monospace" }}
+            stroke="#27272a"
+          />
           <Tooltip
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
-                const item = payload[0].payload as MarketTrendSkill;
+                const item = payload[0].payload as UnifiedMarketItem;
                 return (
-                  <div className="rounded-xl border border-slate-700 bg-slate-900/95 p-3 shadow-xl text-xs space-y-1 z-50">
-                    <p className="font-bold text-white">{item.skill}</p>
-                    <p className="text-slate-400">Category: {item.category}</p>
-                    <p className="font-mono text-indigo-400">
-                      {metricLabels[metric]}:{" "}
-                      <span className="font-bold text-white">
-                        {metric === "averageSalaryLPA"
-                          ? `₹${item.averageSalaryLPA} LPA`
-                          : metric === "growthRatePercentage"
-                          ? `${item.growthRatePercentage > 0 ? "+" : ""}${item.growthRatePercentage}%`
-                          : item.activeOpeningsCount.toLocaleString()}
+                  <div className="rounded border border-zinc-800 bg-zinc-950 p-2.5 text-xs font-mono space-y-1 z-50">
+                    <p className="font-bold text-zinc-100">{item.name}</p>
+                    <p className="text-zinc-400 text-[10px]">Category: {item.category}</p>
+                    <p className="text-emerald-400">
+                      {metricLabels[activeKey]}:{" "}
+                      <span className="font-bold text-zinc-100">
+                        {activeKey === "salary"
+                          ? `₹${item.salary} LPA`
+                          : activeKey === "growth"
+                          ? `${item.growth > 0 ? "+" : ""}${item.growth}%`
+                          : item.openings.toLocaleString()}
                       </span>
                     </p>
-                    <p className="text-[10px] text-slate-400 italic max-w-xs">{item.marketInsight}</p>
+                    {item.insight && (
+                      <p className="text-[10px] text-zinc-500 max-w-xs">{item.insight}</p>
+                    )}
                   </div>
                 );
               }
               return null;
             }}
           />
-          <Bar dataKey={metric} radius={[4, 4, 0, 0]}>
-            {skills.map((entry, index) => {
-              const isDeprecating = entry.trendStatus === "Deprecating";
-              const isSurging = entry.trendStatus === "Surging";
-              const fillColor = isDeprecating
-                ? "#f43f5e" // rose-500
-                : isSurging
-                ? "#6366f1" // indigo-500
-                : "#10b981"; // emerald-500
+          <Bar dataKey={activeKey} radius={[2, 2, 0, 0]}>
+            {data.map((entry, index) => {
+              const fillColor =
+                entry.trend === "declining"
+                  ? "#ef4444"
+                  : entry.trend === "surging"
+                  ? "#10b981"
+                  : "#52525b";
               return <Cell key={`cell-${index}`} fill={fillColor} />;
             })}
           </Bar>
