@@ -19,6 +19,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScoreRing } from "@/components/ui/score-ring";
+import { Progress } from "@/components/ui/progress";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useStudentContext } from "@/context/student-context";
 import { CertificateRecord } from "@/lib/types";
 import { truncateAddress } from "@/lib/utils";
@@ -125,12 +127,13 @@ export default function CertificatesPage() {
         {/* Right Column: Dynamic Live Analysis Card */}
         <div className="lg:col-span-6 space-y-6">
           {isVerifying ? (
-            <Card className="flex flex-col items-center justify-center py-16 text-center space-y-4">
+            <Card className="flex flex-col items-center justify-center py-12 px-6 text-center space-y-4 border-indigo-500/30">
               <div className="h-12 w-12 rounded-full border-4 border-indigo-500/30 border-t-indigo-500 animate-spin" />
-              <div>
+              <div className="w-full max-w-xs space-y-2">
                 <p className="text-sm font-semibold text-white">Running Multi-Spectral Forensics...</p>
-                <p className="text-xs text-slate-400 mt-1">
-                  Parsing PDF XMP trees • Matching Issuer Certificates
+                <Progress value={78} className="h-2" />
+                <p className="text-xs text-slate-400">
+                  Parsing PDF XMP trees • Matching Cryptographic Signatures
                 </p>
               </div>
             </Card>
@@ -163,19 +166,23 @@ export default function CertificatesPage() {
                     <p className="text-sm font-bold text-white">{currentResult.issuer}</p>
                     <p className="text-xs text-slate-300 font-medium">{currentResult.courseTitle}</p>
                   </div>
-                  <ScoreRing
-                    score={currentResult.confidenceScore}
-                    size={80}
-                    strokeWidth={7}
-                    label="Confidence"
-                    colorScheme={
-                      currentResult.confidenceScore >= 80
-                        ? "emerald"
-                        : currentResult.confidenceScore >= 50
-                        ? "amber"
-                        : "rose"
-                    }
-                  />
+                  <Tooltip content="Calculated by cross-referencing institutional signature, EXIF timestamp, and pixel splice analysis">
+                    <div className="cursor-pointer">
+                      <ScoreRing
+                        score={currentResult.confidenceScore}
+                        size={80}
+                        strokeWidth={7}
+                        label="Confidence"
+                        colorScheme={
+                          currentResult.confidenceScore >= 80
+                            ? "emerald"
+                            : currentResult.confidenceScore >= 50
+                            ? "amber"
+                            : "rose"
+                        }
+                      />
+                    </div>
+                  </Tooltip>
                 </div>
 
                 {/* Extracted Fields */}

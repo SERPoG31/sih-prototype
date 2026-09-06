@@ -32,6 +32,8 @@ export interface CertificateRecord {
 
 export interface GitHubTelemetry {
   handle: string;
+  avatarUrl?: string;
+  isLive?: boolean;
   totalRepos: number;
   starsCount: number;
   contributionsThisYear: number;

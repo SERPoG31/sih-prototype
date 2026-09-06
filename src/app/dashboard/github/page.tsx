@@ -19,6 +19,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { UserAvatar } from "@/components/ui/avatar";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useStudentContext } from "@/context/student-context";
 import { GitHubTelemetry } from "@/lib/types";
 
@@ -148,18 +150,37 @@ export default function GitHubAnalyzerPage() {
           <Card className="border-indigo-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/20">
             <CardHeader className="pb-3 border-b border-slate-800">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-9 w-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-white">
-                    <Github className="h-5 w-5" />
-                  </div>
+                <div className="flex items-center gap-3">
+                  <UserAvatar
+                    src={telemetry.avatarUrl}
+                    name={telemetry.handle}
+                    size="md"
+                    className="border-indigo-500/40 shadow-sm"
+                  />
                   <div>
-                    <h3 className="font-bold text-white text-base">@{telemetry.handle}</h3>
-                    <p className="text-[11px] text-slate-400">Verified via Public GitHub API</p>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-white text-base">@{telemetry.handle}</h3>
+                      {telemetry.isLive ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400 border border-emerald-500/20">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          Live API
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-400 border border-slate-700">
+                          Demo Sandbox
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400">Verified code telemetry & commit stream</p>
                   </div>
                 </div>
-                <Badge variant={tierColors[telemetry.devTier]} dot>
-                  {telemetry.devTier}
-                </Badge>
+                <Tooltip content={`Evaluated based on ${telemetry.totalRepos} repositories, commit velocity, and language diversity.`}>
+                  <div>
+                    <Badge variant={tierColors[telemetry.devTier]} dot>
+                      {telemetry.devTier}
+                    </Badge>
+                  </div>
+                </Tooltip>
               </div>
             </CardHeader>
 

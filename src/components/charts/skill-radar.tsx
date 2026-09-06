@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useSyncExternalStore } from "react";
 import {
   Radar,
   RadarChart,
@@ -18,16 +18,14 @@ interface SkillRadarProps {
   height?: number;
 }
 
+const emptySubscribe = () => () => {};
+
 export function SkillRadar({
   skills,
   targetRoleBenchmark,
   height = 360,
 }: SkillRadarProps) {
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const isMounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
 
   // Format data for Recharts Radar
   const data = skills.map((skill) => {

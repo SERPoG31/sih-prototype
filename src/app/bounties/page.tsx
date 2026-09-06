@@ -21,6 +21,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
+import { Progress } from "@/components/ui/progress";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useStudentContext } from "@/context/student-context";
 import { formatINR } from "@/lib/utils";
 import { BountyChallenge } from "@/lib/types";
@@ -227,14 +229,16 @@ export default function BountyBoardPage() {
               </div>
 
               <CardFooter className="flex items-center justify-between pt-4 border-t border-slate-800">
-                <div>
-                  <span className="text-[10px] uppercase font-mono text-slate-400 block">
-                    Bounty Grant
-                  </span>
-                  <span className="text-lg font-bold font-mono text-emerald-400">
-                    {formatINR(bounty.rewardINR)}
-                  </span>
-                </div>
+                <Tooltip content="Direct industry grant disbursed upon automated CI assertion validation and employer PR merge">
+                  <div className="cursor-pointer">
+                    <span className="text-[10px] uppercase font-mono text-slate-400 block">
+                      Bounty Grant
+                    </span>
+                    <span className="text-lg font-bold font-mono text-emerald-400">
+                      {formatINR(bounty.rewardINR)}
+                    </span>
+                  </div>
+                </Tooltip>
 
                 {bounty.status === "Completed" ? (
                   <Badge variant="success" size="md">
@@ -273,13 +277,21 @@ export default function BountyBoardPage() {
                 <p className="text-xs text-slate-300 leading-relaxed">
                   {submissionFeedback.critique}
                 </p>
-                <div className="flex items-center gap-4 pt-2 text-xs font-mono">
-                  <span className="text-emerald-300">
-                    Auto-Score: <strong>{submissionFeedback.score}%</strong>
-                  </span>
-                  <span className="text-slate-400">
-                    Branch Coverage: <strong>{submissionFeedback.coveragePct}%</strong>
-                  </span>
+                <div className="space-y-2 pt-2 text-xs font-mono">
+                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-emerald-300">Auto-Score Preview</span>
+                      <strong className="text-emerald-400">{submissionFeedback.score}%</strong>
+                    </div>
+                    <Progress value={submissionFeedback.score} className="h-1.5" indicatorClassName="bg-emerald-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Branch Test Coverage</span>
+                      <strong className="text-slate-200">{submissionFeedback.coveragePct}%</strong>
+                    </div>
+                    <Progress value={submissionFeedback.coveragePct} className="h-1.5" indicatorClassName="bg-indigo-500" />
+                  </div>
                 </div>
               </div>
 

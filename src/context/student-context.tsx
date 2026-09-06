@@ -65,6 +65,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
 
   // Hydrate from localStorage on client mount if available
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     try {
       const savedSkills = localStorage.getItem("skillnexus_skills");
       if (savedSkills) setSkills(JSON.parse(savedSkills));
@@ -86,6 +87,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // ignore storage access issues
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   // Save changes to localStorage

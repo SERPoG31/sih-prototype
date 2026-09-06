@@ -26,6 +26,8 @@ import { ScoreRing } from "@/components/ui/score-ring";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { UserAvatar } from "@/components/ui/avatar";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useStudentContext } from "@/context/student-context";
 import { truncateAddress } from "@/lib/utils";
 
@@ -84,20 +86,24 @@ export default function PublicPortfolioPage() {
         <Card className="border-indigo-500/40 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/30 p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
             <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <UserAvatar
                 src={currentPersona.avatar}
-                alt={currentPersona.name}
-                className="h-24 w-24 rounded-2xl object-cover border-2 border-indigo-500/50 shadow-xl"
+                name={currentPersona.name}
+                size="xl"
+                className="h-24 w-24 rounded-2xl border-2 border-indigo-500/50 shadow-xl"
               />
               <div className="space-y-1.5">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                   <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                     {currentPersona.name}
                   </h1>
-                  <Badge variant="success" dot size="sm">
-                    Verified Dev: {github.devTier}
-                  </Badge>
+                  <Tooltip content={`Derived from AST codebase telemetry: ${github.totalRepos} repos, ${github.starsCount} stars`}>
+                    <div>
+                      <Badge variant="success" dot size="sm">
+                        Verified Dev: {github.devTier}
+                      </Badge>
+                    </div>
+                  </Tooltip>
                 </div>
                 <p className="text-sm text-indigo-300 font-medium">{currentPersona.title}</p>
                 <p className="text-xs text-slate-400 flex items-center justify-center sm:justify-start gap-1">
@@ -124,18 +130,20 @@ export default function PublicPortfolioPage() {
             </div>
 
             {/* Score Ring */}
-            <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-slate-950/70 border border-slate-800 shrink-0">
-              <ScoreRing
-                score={readinessScore}
-                size={110}
-                strokeWidth={9}
-                label="Readiness"
-                colorScheme="emerald"
-              />
-              <span className="text-[10px] font-mono text-slate-400 mt-2">
-                Multi-Source Aggregated
-              </span>
-            </div>
+            <Tooltip content="Dynamic readiness index across 4 verified evidence channels">
+              <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-slate-950/70 border border-slate-800 shrink-0 cursor-default">
+                <ScoreRing
+                  score={readinessScore}
+                  size={110}
+                  strokeWidth={9}
+                  label="Readiness"
+                  colorScheme="emerald"
+                />
+                <span className="text-[10px] font-mono text-slate-400 mt-2">
+                  Multi-Source Aggregated
+                </span>
+              </div>
+            </Tooltip>
           </div>
 
           {/* Verified Badges Carousel Strip */}
@@ -145,9 +153,13 @@ export default function PublicPortfolioPage() {
             </span>
             <div className="flex flex-wrap gap-2">
               {verifiedBadges.map((badge, i) => (
-                <Badge key={i} variant="purple" size="sm">
-                  ★ {badge}
-                </Badge>
+                <Tooltip key={i} content="Cryptographically authenticated via institution / repository verification ledger">
+                  <div>
+                    <Badge variant="purple" size="sm">
+                      ★ {badge}
+                    </Badge>
+                  </div>
+                </Tooltip>
               ))}
             </div>
           </div>

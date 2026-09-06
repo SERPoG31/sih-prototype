@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
+import { Tooltip } from "@/components/ui/tooltip";
 import { MarketTrendChart } from "@/components/charts/market-trend-chart";
 import { MARKET_TRENDS_DATA } from "@/lib/market-data";
 import { MarketTrendSkill } from "@/lib/types";
@@ -103,36 +104,42 @@ export default function MarketDemandRadarPage() {
 
           {/* Metric Selector Tabs */}
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setActiveMetric("growthRatePercentage")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeMetric === "growthRatePercentage"
-                  ? "bg-indigo-600 text-white shadow border border-indigo-500"
-                  : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
-              }`}
-            >
-              YoY Growth (%)
-            </button>
-            <button
-              onClick={() => setActiveMetric("activeOpeningsCount")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeMetric === "activeOpeningsCount"
-                  ? "bg-indigo-600 text-white shadow border border-indigo-500"
-                  : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
-              }`}
-            >
-              Active Openings
-            </button>
-            <button
-              onClick={() => setActiveMetric("averageSalaryLPA")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeMetric === "averageSalaryLPA"
-                  ? "bg-indigo-600 text-white shadow border border-indigo-500"
-                  : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
-              }`}
-            >
-              Avg Salary (LPA ₹)
-            </button>
+            <Tooltip content="Year-over-Year hiring expansion percentage across Naukri & LinkedIn postings">
+              <button
+                onClick={() => setActiveMetric("growthRatePercentage")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeMetric === "growthRatePercentage"
+                    ? "bg-indigo-600 text-white shadow border border-indigo-500"
+                    : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
+                }`}
+              >
+                YoY Growth (%)
+              </button>
+            </Tooltip>
+            <Tooltip content="Total currently listed vacancy openings across verified Indian technology employers">
+              <button
+                onClick={() => setActiveMetric("activeOpeningsCount")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeMetric === "activeOpeningsCount"
+                    ? "bg-indigo-600 text-white shadow border border-indigo-500"
+                    : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
+                }`}
+              >
+                Active Openings
+              </button>
+            </Tooltip>
+            <Tooltip content="Average CTC compensation bracket for junior and fresher candidates in INR Lakhs Per Annum">
+              <button
+                onClick={() => setActiveMetric("averageSalaryLPA")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeMetric === "averageSalaryLPA"
+                    ? "bg-indigo-600 text-white shadow border border-indigo-500"
+                    : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
+                }`}
+              >
+                Avg Salary (LPA ₹)
+              </button>
+            </Tooltip>
           </div>
         </CardHeader>
 

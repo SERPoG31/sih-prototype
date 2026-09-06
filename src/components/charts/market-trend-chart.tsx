@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useSyncExternalStore } from "react";
 import {
   BarChart,
   Bar,
@@ -18,12 +18,10 @@ interface MarketTrendChartProps {
   metric: "growthRatePercentage" | "activeOpeningsCount" | "averageSalaryLPA";
 }
 
-export function MarketTrendChart({ skills, metric }: MarketTrendChartProps) {
-  const [isMounted, setIsMounted] = useState(false);
+const emptySubscribe = () => () => {};
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+export function MarketTrendChart({ skills, metric }: MarketTrendChartProps) {
+  const isMounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
 
   if (!isMounted) {
     return (

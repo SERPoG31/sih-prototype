@@ -17,6 +17,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useStudentContext } from "@/context/student-context";
 import { SKILL_CHALLENGES } from "@/lib/skill-challenges";
 import { Challenge } from "@/lib/types";
@@ -274,16 +276,18 @@ export default function SkillCheckPage() {
 
               <div className="flex items-center gap-3">
                 {/* Countdown Timer */}
-                <div
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border font-mono font-bold ${
-                    timeLeft < 30
-                      ? "bg-rose-500/20 border-rose-500/40 text-rose-400 animate-pulse"
-                      : "bg-slate-950 border-slate-700 text-emerald-400"
-                  }`}
-                >
-                  <Clock className="h-3.5 w-3.5" />
-                  <span>{timerDisplay}</span>
-                </div>
+                <Tooltip content="Timed live sandbox verification to eliminate AI prompt injection copying">
+                  <div
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border font-mono font-bold cursor-default ${
+                      timeLeft < 30
+                        ? "bg-rose-500/20 border-rose-500/40 text-rose-400 animate-pulse"
+                        : "bg-slate-950 border-slate-700 text-emerald-400"
+                    }`}
+                  >
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>{timerDisplay}</span>
+                  </div>
+                </Tooltip>
 
                 {!timerRunning && timeLeft === selectedChallenge.timeLimitSeconds && (
                   <Button variant="primary" size="sm" onClick={handleStartTimer}>
@@ -292,15 +296,29 @@ export default function SkillCheckPage() {
                   </Button>
                 )}
 
-                <button
-                  onClick={handleReset}
-                  title="Reset code and timer"
-                  className="p-1.5 text-slate-400 hover:text-white rounded hover:bg-slate-800"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                </button>
+                <Tooltip content="Reset challenge starter code and timer">
+                  <button
+                    onClick={handleReset}
+                    className="p-1.5 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </button>
+                </Tooltip>
               </div>
             </div>
+
+            {/* Time progress bar */}
+            <Progress
+              value={(timeLeft / selectedChallenge.timeLimitSeconds) * 100}
+              className="h-1 rounded-none bg-slate-800"
+              indicatorClassName={
+                timeLeft < 30
+                  ? "bg-rose-500"
+                  : timeLeft < 60
+                  ? "bg-amber-500"
+                  : "bg-indigo-500"
+              }
+            />
 
             {/* Code Textarea Area with Monospace Font */}
             <div className="p-4 bg-slate-950">

@@ -19,6 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { Modal } from "@/components/ui/modal";
+import { Progress } from "@/components/ui/progress";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useStudentContext } from "@/context/student-context";
 import { INTERNSHIP_LISTINGS } from "@/lib/mock-data";
 import { MockInterviewQuestion, MockInterviewFeedback } from "@/lib/types";
@@ -218,13 +220,17 @@ export default function MockInterviewPage() {
                   Verified Score Awarded: +{interviewResult.averageScore}%
                 </p>
               </div>
-              <ScoreRing
-                score={interviewResult.averageScore}
-                size={75}
-                strokeWidth={7}
-                label="Score"
-                colorScheme="emerald"
-              />
+              <Tooltip content="Composite score derived from AST code structure, keyword coverage, and systems design depth">
+                <div className="cursor-pointer">
+                  <ScoreRing
+                    score={interviewResult.averageScore}
+                    size={75}
+                    strokeWidth={7}
+                    label="Score"
+                    colorScheme="emerald"
+                  />
+                </div>
+              </Tooltip>
             </div>
 
             <div className="space-y-4">
@@ -292,14 +298,11 @@ export default function MockInterviewPage() {
                   Focus: {questions[currentQuestionIndex].skill}
                 </span>
               </div>
-              <div className="h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
-                <div
-                  className="h-full bg-indigo-500 transition-all duration-300"
-                  style={{
-                    width: `${((currentQuestionIndex + 1) / questions.length) * 100}%`,
-                  }}
-                />
-              </div>
+              <Progress
+                value={((currentQuestionIndex + 1) / questions.length) * 100}
+                className="h-1.5"
+                indicatorClassName="bg-indigo-500"
+              />
 
               {/* Question Box */}
               <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">

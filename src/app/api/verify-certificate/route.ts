@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     let issuer = "NPTEL (IIT Madras)";
     let courseTitle = "Design and Analysis of Algorithms";
     let skillsAwarded = ["Algorithms", "Data Structures", "Time Complexity Analysis"];
-    let studentName = "Arjun Kumar";
+    const studentName = "Arjun Kumar";
     let confidenceScore = 98;
     const tamperingFlags: string[] = [];
     let status: "verified" | "flagged" | "rejected" = "verified";

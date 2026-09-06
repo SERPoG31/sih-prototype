@@ -15,6 +15,8 @@ import {
 import { useStudentContext } from "@/context/student-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { UserAvatar } from "@/components/ui/avatar";
+import { Tooltip } from "@/components/ui/tooltip";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -93,47 +95,51 @@ export function Navbar() {
         {/* Right Section: Persona Switcher & Live Readiness Score */}
         <div className="flex items-center gap-3">
           {/* Live Readiness Pill */}
-          <div className="hidden sm:flex items-center gap-2 bg-slate-900/90 border border-slate-700/80 rounded-full px-3 py-1">
-            <Zap className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
-            <span className="text-xs text-slate-400 font-medium">Readiness:</span>
-            <span className="text-xs font-bold font-mono text-emerald-400">
-              {readinessScore}%
-            </span>
-          </div>
+          <Tooltip content="Live dynamic readiness score computed from verified skills, GitHub AST, certs, and bounties">
+            <div className="hidden sm:flex items-center gap-2 bg-slate-900/90 border border-slate-700/80 rounded-full px-3 py-1 cursor-default">
+              <Zap className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
+              <span className="text-xs text-slate-400 font-medium">Readiness:</span>
+              <span className="text-xs font-bold font-mono text-emerald-400">
+                {readinessScore}%
+              </span>
+            </div>
+          </Tooltip>
 
           {/* Reset Demo Data Button */}
-          <button
-            onClick={resetToDefaults}
-            title="Reset demo data to initial state"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </button>
+          <Tooltip content="Reset all evidence to default state">
+            <button
+              onClick={resetToDefaults}
+              aria-label="Reset demo data"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </button>
+          </Tooltip>
 
           {/* Demo Persona Switcher Dropdown (Per User Feedback) */}
           <div className="relative">
-            <button
-              onClick={() => setIsPersonaOpen(!isPersonaOpen)}
-              className="flex items-center gap-2 rounded-xl bg-slate-900 border border-slate-700/80 px-2.5 py-1.5 text-left hover:border-indigo-500/60 transition-all focus:outline-none"
-            >
-              <div className="h-7 w-7 rounded-lg overflow-hidden border border-slate-700 shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+            <Tooltip content="Switch persona role (Student, Recruiter, TPO) instantly">
+              <button
+                onClick={() => setIsPersonaOpen(!isPersonaOpen)}
+                className="flex items-center gap-2 rounded-xl bg-slate-900 border border-slate-700/80 px-2.5 py-1.5 text-left hover:border-indigo-500/60 transition-all focus:outline-none"
+              >
+                <UserAvatar
                   src={currentPersona.avatar}
-                  alt={currentPersona.name}
-                  className="h-full w-full object-cover"
+                  name={currentPersona.name}
+                  size="sm"
+                  className="border-slate-700"
                 />
-              </div>
-              <div className="hidden lg:flex flex-col text-left">
-                <span className="text-xs font-bold text-slate-200 leading-tight">
-                  {currentPersona.name}
-                </span>
-                <span className="text-[10px] text-slate-400 truncate max-w-[130px]">
-                  {currentPersona.title}
-                </span>
-              </div>
-              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-            </button>
+                <div className="hidden lg:flex flex-col text-left">
+                  <span className="text-xs font-bold text-slate-200 leading-tight">
+                    {currentPersona.name}
+                  </span>
+                  <span className="text-[10px] text-slate-400 truncate max-w-[130px]">
+                    {currentPersona.title}
+                  </span>
+                </div>
+                <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+              </button>
+            </Tooltip>
 
             {isPersonaOpen && (
               <div
@@ -162,14 +168,12 @@ export function Navbar() {
                             : "hover:bg-slate-800/70 text-slate-300"
                         }`}
                       >
-                        <div className="h-8 w-8 rounded-lg overflow-hidden border border-slate-700 shrink-0">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={persona.avatar}
-                            alt={persona.name}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
+                        <UserAvatar
+                          src={persona.avatar}
+                          name={persona.name}
+                          size="md"
+                          className="border-slate-700 shrink-0"
+                        />
                         <div className="flex flex-col flex-1 overflow-hidden">
                           <span className="text-xs font-semibold leading-snug">
                             {persona.name}

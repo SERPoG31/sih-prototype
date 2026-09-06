@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Sparkles,
   ShieldCheck,
@@ -19,6 +20,7 @@ import {
   Terminal,
   Zap,
   Building,
+  Command,
 } from "lucide-react";
 import { Github } from "@/components/ui/icons";
 import { Navbar } from "@/components/layout/navbar";
@@ -27,6 +29,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
 export default function HomePage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "d" || e.key === "D") {
+        router.push("/dashboard");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [router]);
   const PILLARS = [
     {
       num: "01",
@@ -188,6 +202,11 @@ export default function HomePage() {
               </Button>
             </Link>
           </div>
+
+          <p className="text-[11px] text-slate-500 font-mono flex items-center justify-center gap-1.5 pt-1">
+            <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 font-bold">D</span>
+            <span>Press &apos;D&apos; anywhere to jump directly to Cockpit</span>
+          </p>
 
           {/* Metric Stats Banner */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-10 border-t border-slate-800/80 mt-10">
