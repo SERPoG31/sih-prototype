@@ -26,30 +26,30 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const isBusy = isLoading || loading;
     const baseStyles =
-      "inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98]";
+      "inline-flex items-center justify-center font-medium rounded-md transition-colors duration-150 focus:outline-none focus:ring-1 focus:ring-zinc-600 disabled:opacity-40 disabled:cursor-not-allowed select-none active:scale-[0.99] text-xs";
 
     const variants = {
       primary:
-        "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 focus:ring-indigo-500 border border-indigo-500/30",
-      secondary:
-        "bg-slate-800 hover:bg-slate-700 text-slate-100 focus:ring-slate-400 border border-slate-700/60",
-      outline:
-        "bg-transparent hover:bg-slate-800/60 text-slate-200 border border-slate-700 hover:border-slate-600 focus:ring-indigo-500",
-      ghost:
-        "bg-transparent hover:bg-slate-800/70 text-slate-300 hover:text-white focus:ring-slate-600",
-      destructive:
-        "bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/25 focus:ring-rose-500 border border-rose-500/30",
+        "bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold shadow-none border-0",
       accent:
-        "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/25 focus:ring-emerald-500 border border-emerald-500/30",
+        "bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold shadow-none border-0",
+      secondary:
+        "bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 shadow-none",
+      outline:
+        "bg-transparent hover:bg-zinc-900 text-zinc-300 border border-zinc-800 shadow-none",
+      ghost:
+        "bg-transparent hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 shadow-none",
+      destructive:
+        "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 shadow-none",
       "ghost-accent":
-        "bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 focus:ring-indigo-500",
+        "bg-zinc-900 hover:bg-zinc-800 text-emerald-400 border border-zinc-800 shadow-none",
     };
 
     const sizes = {
-      sm: "text-xs px-3 py-1.5 gap-1.5",
-      md: "text-sm px-4 py-2 gap-2",
-      lg: "text-base px-6 py-2.5 gap-2.5",
-      icon: "p-2 w-9 h-9",
+      sm: "text-xs px-2.5 py-1.5 gap-1.5",
+      md: "text-xs px-3.5 py-2 gap-2",
+      lg: "text-sm px-4 py-2.5 gap-2",
+      icon: "p-1.5 w-8 h-8",
     };
 
     return (
@@ -61,7 +61,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {isBusy && (
           <svg
-            className="animate-spin -ml-1 mr-2 h-4 w-4 text-current"
+            className="animate-spin -ml-1 mr-2 h-3.5 w-3.5 text-current"
             fill="none"
             viewBox="0 0 24 24"
           >

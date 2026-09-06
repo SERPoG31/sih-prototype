@@ -44,7 +44,7 @@ export function SkillRadar({
   if (!isMounted) {
     return (
       <div
-        className="w-full flex items-center justify-center text-xs text-slate-500 font-mono"
+        className="w-full flex items-center justify-center text-xs text-zinc-500 font-mono"
         style={{ height }}
       >
         Initializing Radar Engine...
@@ -56,34 +56,34 @@ export function SkillRadar({
     <div className="w-full relative" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart cx="50%" cy="50%" outerRadius="75%" data={data}>
-          <PolarGrid stroke="#334155" strokeDasharray="3 3" />
+          <PolarGrid stroke="#27272a" strokeDasharray="2 2" />
           <PolarAngleAxis
             dataKey="skill"
-            tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }}
+            tick={{ fill: "#a1a1aa", fontSize: 10, fontWeight: 500, fontFamily: "monospace" }}
           />
           <PolarRadiusAxis
             angle={30}
             domain={[0, 100]}
-            tick={{ fill: "#64748b", fontSize: 9 }}
-            stroke="#1e293b"
+            tick={{ fill: "#52525b", fontSize: 9, fontFamily: "monospace" }}
+            stroke="#27272a"
           />
           <Tooltip
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
                 const item = payload[0].payload;
                 return (
-                  <div className="rounded-xl border border-slate-700 bg-slate-900/95 p-3 shadow-xl text-xs space-y-1 z-50">
-                    <p className="font-bold text-white">{item.skill}</p>
-                    <p className="text-indigo-400 font-mono">
-                      Verified Score: <span className="font-bold">{item.verifiedScore}/100</span>
+                  <div className="rounded-md border border-zinc-800 bg-zinc-950 p-2.5 text-xs font-mono space-y-1 z-50">
+                    <p className="font-bold text-zinc-100">{item.skill}</p>
+                    <p className="text-emerald-400">
+                      Verified: <span className="font-bold">{item.verifiedScore}/100</span>
                     </p>
                     {targetRoleBenchmark && (
-                      <p className="text-emerald-400 font-mono">
-                        Industry Benchmark: {item.targetBenchmark}/100
+                      <p className="text-zinc-400">
+                        Benchmark: {item.targetBenchmark}/100
                       </p>
                     )}
-                    <p className="text-slate-400 text-[10px]">
-                      Verified Sources: <span className="text-slate-200">{item.sources}</span>
+                    <p className="text-zinc-500 text-[10px]">
+                      Sources: {item.sources}
                     </p>
                   </div>
                 );
@@ -95,19 +95,19 @@ export function SkillRadar({
             <Radar
               name="Industry Benchmark"
               dataKey="targetBenchmark"
-              stroke="#10b981"
-              fill="#10b981"
+              stroke="#71717a"
+              fill="#3f3f46"
               fillOpacity={0.15}
-              strokeDasharray="4 4"
+              strokeDasharray="3 3"
             />
           )}
           <Radar
             name="Student Verified Profile"
             dataKey="verifiedScore"
-            stroke="#6366f1"
-            fill="#6366f1"
-            fillOpacity={0.45}
-            strokeWidth={2}
+            stroke="#10b981"
+            fill="#10b981"
+            fillOpacity={0.25}
+            strokeWidth={1.5}
           />
         </RadarChart>
       </ResponsiveContainer>

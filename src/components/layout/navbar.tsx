@@ -4,14 +4,13 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Sparkles,
   ChevronDown,
   UserCheck,
   ExternalLink,
   RotateCcw,
-  Zap,
   Menu,
   ChevronRight,
+  Terminal,
 } from "lucide-react";
 import { useStudentContext } from "@/context/student-context";
 import { UserAvatar } from "@/components/ui/avatar";
@@ -43,46 +42,39 @@ export function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <header className="sticky top-0 z-40 w-full border-b border-zinc-800 bg-zinc-950">
+        <div className="mx-auto flex h-13 max-w-7xl items-center justify-between px-3 sm:px-4 lg:px-6">
           {/* Brand Logo & Mobile Trigger */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="md:hidden p-2 -ml-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
+              className="md:hidden p-1.5 -ml-1.5 rounded text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 transition-colors"
               aria-label="Open navigation menu"
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-4 w-4" />
             </button>
 
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-emerald-400 p-0.5 shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-                <div className="flex h-full w-full items-center justify-center rounded-[10px] bg-slate-950">
-                  <Sparkles className="h-4 w-4 text-indigo-400" />
-                </div>
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="flex h-6 w-6 items-center justify-center rounded border border-zinc-700 bg-zinc-900 text-zinc-200">
+                <Terminal className="h-3.5 w-3.5 text-zinc-300" />
               </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold tracking-tight text-white text-base">
-                    Skill<span className="text-indigo-400">Nexus</span>
-                  </span>
-                  <span className="text-[10px] font-mono font-semibold px-1.5 py-0.2 bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/30 hidden sm:inline">
-                    SIH 26044
-                  </span>
-                </div>
-                <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
-                  Academia-Industry Evidence Loop
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold tracking-tight text-zinc-100 text-sm">
+                  SkillNexus
+                </span>
+                <span className="text-[10px] font-mono px-1 py-0.2 bg-zinc-900 text-zinc-400 rounded border border-zinc-800 hidden sm:inline">
+                  PS: 26044
                 </span>
               </div>
             </Link>
 
             {/* Breadcrumb trail on desktop */}
-            <div className="hidden lg:flex items-center gap-1.5 ml-4 pl-4 border-l border-slate-800 text-xs font-mono text-slate-400">
-              <Link href="/dashboard" className="hover:text-slate-200 transition-colors">
-                Portal
+            <div className="hidden lg:flex items-center gap-1.5 ml-3 pl-3 border-l border-zinc-800 text-xs font-mono text-zinc-500">
+              <Link href="/dashboard" className="hover:text-zinc-300 transition-colors">
+                Cockpit
               </Link>
-              <ChevronRight className="h-3 w-3 text-slate-600" />
-              <span className="text-indigo-300 font-semibold">{currentSectionName}</span>
+              <ChevronRight className="h-3 w-3 text-zinc-700" />
+              <span className="text-zinc-200 font-medium">{currentSectionName}</span>
             </div>
           </div>
 
@@ -90,141 +82,124 @@ export function Navbar() {
           <nav className="hidden xl:flex items-center gap-1">
             <Link
               href="/dashboard"
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
                 pathname === "/dashboard"
-                  ? "bg-slate-800/90 text-indigo-400 border border-slate-700 shadow-sm"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                  ? "bg-zinc-900 text-zinc-100 border border-zinc-800"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
               }`}
             >
-              Dashboard
+              Overview
             </Link>
             <Link
               href="/bounties"
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
                 pathname === "/bounties"
-                  ? "bg-slate-800/90 text-indigo-400 border border-slate-700 shadow-sm"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                  ? "bg-zinc-900 text-zinc-100 border border-zinc-800"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
               }`}
             >
-              Bounty Board
+              Bounties
             </Link>
             <Link
               href="/dashboard/market"
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
                 pathname === "/dashboard/market"
-                  ? "bg-slate-800/90 text-indigo-400 border border-slate-700 shadow-sm"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                  ? "bg-zinc-900 text-zinc-100 border border-zinc-800"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
               }`}
             >
-              Market Radar
-            </Link>
-            <Link
-              href="/p/arjun-kumar"
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-400 hover:bg-emerald-500/10 transition-all border border-emerald-500/30"
-            >
-              <span>Public Portfolio</span>
-              <ExternalLink className="h-3 w-3" />
+              Market Demand
             </Link>
           </nav>
 
           {/* Right Section: Persona Switcher & Live Readiness Score */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Live Readiness Pill with pulse glow */}
-            <Tooltip content="Live dynamic readiness score computed from verified skills, GitHub AST, certs, and bounties">
-              <div
-                className={`hidden sm:flex items-center gap-2 bg-slate-900/90 border border-slate-700/80 rounded-full px-3 py-1 cursor-default transition-all ${
-                  readinessScore >= 80 ? "readiness-pulse border-emerald-500/40" : ""
-                }`}
-              >
-                <Zap className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
-                <span className="text-xs text-slate-400 font-medium">Readiness:</span>
-                <span className="text-xs font-bold font-mono text-emerald-400">
+          <div className="flex items-center gap-2">
+            {/* Primary Accent CTA: Public Portfolio */}
+            <Link
+              href="/p/arjun-kumar"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-xs transition-colors shadow-none"
+            >
+              <span>Portfolio</span>
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+
+            {/* Live Readiness Pill with status dot */}
+            <Tooltip content="Composite Readiness: 40% Skills + 25% GitHub + 20% Certs + 15% Bounties">
+              <div className="hidden sm:flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded px-2 py-1 cursor-default text-xs font-mono">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span className="text-zinc-400 text-[11px]">Ready:</span>
+                <span className="font-bold text-zinc-100">
                   {readinessScore}%
                 </span>
               </div>
             </Tooltip>
 
             {/* Reset Demo Data Button */}
-            <Tooltip content="Reset all evidence to default state">
+            <Tooltip content="Reset verification state">
               <button
                 onClick={resetToDefaults}
                 aria-label="Reset demo data"
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="p-1.5 rounded text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-colors"
               >
-                <RotateCcw className="h-4 w-4" />
+                <RotateCcw className="h-3.5 w-3.5" />
               </button>
             </Tooltip>
 
             {/* Demo Persona Switcher Dropdown */}
             <div className="relative">
-              <Tooltip content="Switch persona role (Student, Recruiter, TPO) instantly">
-                <button
-                  onClick={() => setIsPersonaOpen(!isPersonaOpen)}
-                  className="flex items-center gap-2 rounded-xl bg-slate-900 border border-slate-700/80 px-2.5 py-1.5 text-left hover:border-indigo-500/60 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <UserAvatar
-                    src={currentPersona.avatar}
-                    name={currentPersona.name}
-                    size="sm"
-                    className="border-slate-700"
-                  />
-                  <div className="hidden lg:flex flex-col text-left">
-                    <span className="text-xs font-bold text-slate-200 leading-tight">
-                      {currentPersona.name}
-                    </span>
-                    <span className="text-[10px] text-slate-400 truncate max-w-[130px]">
-                      {currentPersona.title}
-                    </span>
-                  </div>
-                  <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-                </button>
-              </Tooltip>
+              <button
+                onClick={() => setIsPersonaOpen(!isPersonaOpen)}
+                className="flex items-center gap-2 rounded border border-zinc-800 bg-zinc-900 px-2 py-1 text-left hover:bg-zinc-800/80 transition-colors focus:outline-none"
+              >
+                <UserAvatar
+                  src={currentPersona.avatar}
+                  name={currentPersona.name}
+                  size="sm"
+                  className="border-zinc-700 h-5 w-5"
+                />
+                <span className="hidden md:inline text-xs text-zinc-300 font-medium max-w-[100px] truncate">
+                  {currentPersona.name.split(" ")[0]}
+                </span>
+                <ChevronDown className="h-3 w-3 text-zinc-500" />
+              </button>
 
               {isPersonaOpen && (
                 <div
-                  className="absolute right-0 mt-2 w-72 rounded-xl border border-slate-700 bg-slate-900/95 backdrop-blur-xl p-2 shadow-2xl z-50 animate-fade-slide-up"
+                  className="absolute right-0 mt-1 w-64 rounded-md border border-zinc-800 bg-zinc-950 p-1 shadow-2xl z-50"
                   onClick={() => setIsPersonaOpen(false)}
                 >
-                  <div className="px-3 py-2 border-b border-slate-800 mb-1">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-400 font-mono">
-                      Judge / Demo Persona Switcher
-                    </p>
-                    <p className="text-[10px] text-slate-400">
-                      Switch roles instantly without auth lockouts
+                  <div className="px-2 py-1.5 border-b border-zinc-800/80 mb-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 font-mono">
+                      Persona Switcher
                     </p>
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     {personas.map((persona) => {
                       const isSelected = persona.id === currentPersona.id;
                       return (
                         <button
                           key={persona.id}
                           onClick={() => switchPersona(persona.id)}
-                          className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-colors ${
+                          className={`w-full flex items-center gap-2.5 p-2 rounded text-left transition-colors ${
                             isSelected
-                              ? "bg-indigo-600/20 border border-indigo-500/40 text-white"
-                              : "hover:bg-slate-800/70 text-slate-300"
+                              ? "bg-zinc-900 text-zinc-100 font-medium"
+                              : "hover:bg-zinc-900/60 text-zinc-400 hover:text-zinc-200"
                           }`}
                         >
                           <UserAvatar
                             src={persona.avatar}
                             name={persona.name}
-                            size="md"
-                            className="border-slate-700 shrink-0"
+                            size="sm"
+                            className="border-zinc-800 shrink-0"
                           />
                           <div className="flex flex-col flex-1 overflow-hidden">
-                            <span className="text-xs font-semibold leading-snug">
-                              {persona.name}
-                            </span>
-                            <span className="text-[10px] text-slate-400 truncate">
+                            <span className="text-xs truncate">{persona.name}</span>
+                            <span className="text-[10px] text-zinc-500 truncate">
                               {persona.title}
                             </span>
-                            <span className="text-[9px] text-indigo-300 font-mono">
-                              {persona.organization}
-                            </span>
                           </div>
-                          {isSelected && <UserCheck className="h-4 w-4 text-indigo-400 shrink-0" />}
+                          {isSelected && <UserCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />}
                         </button>
                       );
                     })}

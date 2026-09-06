@@ -15,7 +15,7 @@ import {
   TrendingUp,
   Share2,
   X,
-  Sparkles,
+  Terminal,
 } from "lucide-react";
 import { Github } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
@@ -27,15 +27,15 @@ interface MobileSidebarDrawerProps {
   onClose: () => void;
 }
 
-const NAV_GROUPS = [
+const NAV_SECTIONS = [
   {
     title: "OVERVIEW",
     items: [
       {
         href: "/dashboard",
-        label: "Skill Radar & Overview",
+        label: "Cockpit & Skills",
         icon: LayoutDashboard,
-        pill: "Core",
+        kbd: "1",
       },
     ],
   },
@@ -44,73 +44,73 @@ const NAV_GROUPS = [
     items: [
       {
         href: "/dashboard/certificates",
-        label: "1. Certificate Authenticator",
+        label: "Certificate OCR",
         icon: Award,
-        pill: "OCR & Tamper",
+        kbd: "2",
       },
       {
         href: "/dashboard/github",
-        label: "2. GitHub Ground-Truth",
+        label: "GitHub AST",
         icon: Github,
-        pill: "Telemetry",
+        kbd: "3",
       },
       {
         href: "/dashboard/skill-check",
-        label: "5. Skill Check Sandbox",
+        label: "Timed Sandbox",
         icon: Code2,
-        pill: "Timed IDE",
+        kbd: "4",
       },
       {
         href: "/dashboard/lor",
-        label: "9. Tamper-Proof LOR",
+        label: "Tamper-Proof LOR",
         icon: FileCheck2,
-        pill: "SHA-256",
+        kbd: "5",
       },
     ],
   },
   {
-    title: "GROWTH & SKILLING",
+    title: "GROWTH",
     items: [
       {
         href: "/dashboard/pathways",
-        label: "4. Dynamic Bridge Pathways",
+        label: "Bridge Pathways",
         icon: GitBranch,
-        pill: "5-Day Sprints",
+        kbd: "6",
       },
       {
         href: "/dashboard/mock-interview",
-        label: "6. AI Mock Interviewer",
+        label: "AI Interviewer",
         icon: Bot,
-        pill: "Gap-Targeted",
+        kbd: "7",
       },
       {
         href: "/dashboard/market",
-        label: "10. Market Demand Radar",
+        label: "Market Demand",
         icon: TrendingUp,
-        pill: "Real-Time",
+        kbd: "8",
       },
     ],
   },
   {
-    title: "COLLABORATION & HIRED",
+    title: "OUTCOMES",
     items: [
       {
         href: "/bounties",
-        label: "7. Industry Bounty Board",
+        label: "Bounty Board",
         icon: Briefcase,
-        pill: "48h Sprints",
+        kbd: "9",
       },
       {
         href: "/dashboard/team-match",
-        label: "8. Capstone Matchmaker",
+        label: "Capstone Match",
         icon: Users,
-        pill: "Synergy AI",
+        kbd: "0",
       },
       {
         href: "/p/arjun-kumar",
-        label: "11. Public Proof Portfolio",
+        label: "Proof Portfolio",
         icon: Share2,
-        pill: "Live URL",
+        kbd: "P",
       },
     ],
   },
@@ -142,32 +142,27 @@ export function MobileSidebarDrawer({ isOpen, onClose }: MobileSidebarDrawerProp
     <div className="fixed inset-0 z-50 md:hidden flex">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-black/80 transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Drawer panel */}
-      <div className="relative w-72 max-w-[85vw] h-full bg-slate-950 border-r border-slate-800 p-4 flex flex-col justify-between shadow-2xl z-10 animate-fade-slide-up">
-        <div className="space-y-4 overflow-y-auto pr-1">
+      <div className="relative w-64 max-w-[80vw] h-full bg-zinc-950 border-r border-zinc-800 p-3 flex flex-col justify-between shadow-none z-10">
+        <div className="space-y-4 overflow-y-auto">
           {/* Header */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-indigo-600 to-emerald-400 p-0.5">
-                <div className="flex h-full w-full items-center justify-center rounded-[6px] bg-slate-950">
-                  <Sparkles className="h-4 w-4 text-indigo-400" />
-                </div>
+          <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded border border-zinc-700 bg-zinc-900 text-zinc-200">
+                <Terminal className="h-3.5 w-3.5" />
               </div>
-              <div className="flex flex-col">
-                <span className="font-extrabold text-white text-sm">
-                  Skill<span className="text-indigo-400">Nexus</span>
-                </span>
-                <span className="text-[9px] font-mono text-slate-400">SIH 26044 Navigation</span>
-              </div>
+              <span className="font-bold text-zinc-100 text-sm">
+                SkillNexus
+              </span>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-1 rounded text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 transition-colors"
               aria-label="Close menu"
             >
               <X className="h-4 w-4" />
@@ -175,14 +170,14 @@ export function MobileSidebarDrawer({ isOpen, onClose }: MobileSidebarDrawerProp
           </div>
 
           {/* Navigation Groups */}
-          <nav className="space-y-4">
-            {NAV_GROUPS.map((group) => (
-              <div key={group.title} className="space-y-1">
-                <p className="px-2 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">
-                  {group.title}
+          <nav className="space-y-3">
+            {NAV_SECTIONS.map((section) => (
+              <div key={section.title} className="space-y-0.5">
+                <p className="px-2 text-[9px] font-mono uppercase tracking-wider text-zinc-600 font-bold">
+                  {section.title}
                 </p>
                 <div className="space-y-0.5">
-                  {group.items.map((item) => {
+                  {section.items.map((item) => {
                     const isActive = pathname === item.href;
                     const Icon = item.icon;
                     return (
@@ -191,32 +186,20 @@ export function MobileSidebarDrawer({ isOpen, onClose }: MobileSidebarDrawerProp
                         href={item.href}
                         onClick={onClose}
                         className={cn(
-                          "flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all group",
+                          "flex items-center justify-between rounded px-2 py-1.5 text-xs font-mono transition-colors",
                           isActive
-                            ? "bg-indigo-600/15 text-indigo-300 border-l-2 border-indigo-500 font-bold"
-                            : "text-slate-300 hover:bg-slate-900 hover:text-white"
+                            ? "bg-zinc-900 text-zinc-100 border-l-2 border-emerald-500 font-medium pl-1.5"
+                            : "text-zinc-400 hover:bg-zinc-900/60 hover:text-zinc-200"
                         )}
                       >
                         <div className="flex items-center gap-2 truncate">
-                          <Icon
-                            className={cn(
-                              "h-3.5 w-3.5 shrink-0 transition-colors",
-                              isActive ? "text-indigo-400" : "text-slate-400 group-hover:text-slate-200"
-                            )}
-                          />
+                          <Icon className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
                           <span className="truncate">{item.label}</span>
                         </div>
-                        {item.pill && (
-                          <span
-                            className={cn(
-                              "text-[8px] font-mono px-1 py-0.2 rounded border shrink-0",
-                              isActive
-                                ? "bg-indigo-950/60 text-indigo-300 border-indigo-800/60"
-                                : "bg-slate-900 text-slate-500 border-slate-800"
-                            )}
-                          >
-                            {item.pill}
-                          </span>
+                        {item.kbd && (
+                          <kbd className="text-[9px] px-1 text-zinc-500 bg-zinc-900 border border-zinc-800 rounded shrink-0">
+                            {item.kbd}
+                          </kbd>
                         )}
                       </Link>
                     );
@@ -228,12 +211,12 @@ export function MobileSidebarDrawer({ isOpen, onClose }: MobileSidebarDrawerProp
         </div>
 
         {/* User profile footer */}
-        <div className="pt-3 border-t border-slate-800/80 mt-4">
-          <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-900/60 border border-slate-800">
-            <UserAvatar src={currentPersona.avatar} name={currentPersona.name} size="sm" />
+        <div className="pt-2 border-t border-zinc-800 mt-2">
+          <div className="flex items-center gap-2 p-1.5 rounded bg-zinc-900/40 border border-zinc-800">
+            <UserAvatar src={currentPersona.avatar} name={currentPersona.name} size="sm" className="h-6 w-6 border-zinc-700" />
             <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-xs font-semibold text-slate-200 truncate">{currentPersona.name}</span>
-              <span className="text-[10px] text-slate-400 truncate">{currentPersona.title}</span>
+              <span className="text-xs font-medium text-zinc-200 truncate">{currentPersona.name}</span>
+              <span className="text-[10px] text-zinc-500 truncate">{currentPersona.title}</span>
             </div>
           </div>
         </div>

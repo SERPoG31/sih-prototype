@@ -26,9 +26,9 @@ const NAV_SECTIONS = [
     items: [
       {
         href: "/dashboard",
-        label: "Skill Radar & Cockpit",
+        label: "Cockpit & Skills",
         icon: LayoutDashboard,
-        pill: "Core",
+        kbd: "1",
       },
     ],
   },
@@ -37,73 +37,73 @@ const NAV_SECTIONS = [
     items: [
       {
         href: "/dashboard/certificates",
-        label: "1. Certificate Authenticator",
+        label: "Certificate OCR",
         icon: Award,
-        pill: "OCR & Tamper",
+        kbd: "2",
       },
       {
         href: "/dashboard/github",
-        label: "2. GitHub Ground-Truth",
+        label: "GitHub AST",
         icon: Github,
-        pill: "Telemetry",
+        kbd: "3",
       },
       {
         href: "/dashboard/skill-check",
-        label: "5. Skill Check Sandbox",
+        label: "Timed Sandbox",
         icon: Code2,
-        pill: "Timed IDE",
+        kbd: "4",
       },
       {
         href: "/dashboard/lor",
-        label: "9. Tamper-Proof LOR",
+        label: "Tamper-Proof LOR",
         icon: FileCheck2,
-        pill: "SHA-256",
+        kbd: "5",
       },
     ],
   },
   {
-    title: "GROWTH & SKILLING",
+    title: "GROWTH",
     items: [
       {
         href: "/dashboard/pathways",
-        label: "4. Dynamic Pathways",
+        label: "Bridge Pathways",
         icon: GitBranch,
-        pill: "5-Day Sprints",
+        kbd: "6",
       },
       {
         href: "/dashboard/mock-interview",
-        label: "6. AI Mock Interviewer",
+        label: "AI Interviewer",
         icon: Bot,
-        pill: "Gap-Targeted",
+        kbd: "7",
       },
       {
         href: "/dashboard/market",
-        label: "10. Market Demand Radar",
+        label: "Market Demand",
         icon: TrendingUp,
-        pill: "Real-Time",
+        kbd: "8",
       },
     ],
   },
   {
-    title: "OPPORTUNITIES",
+    title: "OUTCOMES",
     items: [
       {
         href: "/bounties",
-        label: "7. Industry Bounty Board",
+        label: "Bounty Board",
         icon: Briefcase,
-        pill: "48h Sprints",
+        kbd: "9",
       },
       {
         href: "/dashboard/team-match",
-        label: "8. Capstone Matchmaker",
+        label: "Capstone Match",
         icon: Users,
-        pill: "Synergy AI",
+        kbd: "0",
       },
       {
         href: "/p/arjun-kumar",
-        label: "11. Public Proof Portfolio",
+        label: "Proof Portfolio",
         icon: Share2,
-        pill: "Live URL",
+        kbd: "P",
       },
     ],
   },
@@ -114,18 +114,18 @@ export function Sidebar() {
   const { currentPersona } = useStudentContext();
 
   return (
-    <aside className="w-64 shrink-0 border-r border-slate-800/80 bg-slate-950/60 p-4 hidden md:flex flex-col justify-between backdrop-blur-md">
-      <div className="space-y-4 overflow-y-auto pr-1">
-        <div className="px-2">
-          <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-            System Modules (11 Pillars)
+    <aside className="w-56 shrink-0 border-r border-zinc-800 bg-zinc-950 p-3 hidden md:flex flex-col justify-between select-none">
+      <div className="space-y-4 overflow-y-auto">
+        <div className="px-2 pt-1 pb-1">
+          <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-semibold">
+            System Modules
           </p>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {NAV_SECTIONS.map((section) => (
-            <div key={section.title} className="space-y-1">
-              <p className="px-2 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">
+            <div key={section.title} className="space-y-0.5">
+              <p className="px-2 py-0.5 text-[9px] font-mono uppercase tracking-wider text-zinc-600 font-bold">
                 {section.title}
               </p>
               <div className="space-y-0.5">
@@ -137,32 +137,25 @@ export function Sidebar() {
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        "flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all group",
+                        "flex items-center justify-between rounded px-2 py-1.5 text-xs font-mono transition-colors group",
                         isActive
-                          ? "bg-indigo-600/15 text-indigo-300 border-l-2 border-indigo-500 shadow-sm font-bold pl-2"
-                          : "text-slate-300 hover:bg-slate-900/80 hover:text-white"
+                          ? "bg-zinc-900 text-zinc-100 border-l-2 border-emerald-500 font-medium pl-1.5"
+                          : "text-zinc-400 hover:bg-zinc-900/60 hover:text-zinc-200"
                       )}
                     >
-                      <div className="flex items-center gap-2.5 truncate">
+                      <div className="flex items-center gap-2 truncate">
                         <Icon
                           className={cn(
-                            "h-4 w-4 shrink-0 transition-colors",
-                            isActive ? "text-indigo-400" : "text-slate-400 group-hover:text-slate-200"
+                            "h-3.5 w-3.5 shrink-0 transition-colors",
+                            isActive ? "text-zinc-100" : "text-zinc-500 group-hover:text-zinc-300"
                           )}
                         />
                         <span className="truncate">{item.label}</span>
                       </div>
-                      {item.pill && (
-                        <span
-                          className={cn(
-                            "text-[8px] font-mono px-1.5 py-0.5 rounded border shrink-0",
-                            isActive
-                              ? "bg-indigo-950/60 text-indigo-300 border-indigo-800/60"
-                              : "bg-slate-900 text-slate-400 border-slate-800"
-                          )}
-                        >
-                          {item.pill}
-                        </span>
+                      {item.kbd && (
+                        <kbd className="text-[9px] px-1 py-0.2 text-zinc-500 bg-zinc-900 border border-zinc-800 rounded shrink-0">
+                          {item.kbd}
+                        </kbd>
                       )}
                     </Link>
                   );
@@ -173,18 +166,14 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* User profile block & SIH footer */}
-      <div className="pt-3 border-t border-slate-800/80 mt-4 space-y-2">
-        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-900/50 border border-slate-800/80 hover:border-slate-700 transition-colors">
-          <UserAvatar src={currentPersona.avatar} name={currentPersona.name} size="sm" />
+      {/* User profile footer */}
+      <div className="pt-2 border-t border-zinc-800 mt-3 space-y-2">
+        <div className="flex items-center gap-2 p-1.5 rounded bg-zinc-900/40 border border-zinc-800">
+          <UserAvatar src={currentPersona.avatar} name={currentPersona.name} size="sm" className="h-6 w-6 border-zinc-700" />
           <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-xs font-semibold text-slate-200 truncate">{currentPersona.name}</span>
-            <span className="text-[10px] text-slate-400 truncate">{currentPersona.title}</span>
+            <span className="text-xs font-medium text-zinc-200 truncate">{currentPersona.name}</span>
+            <span className="text-[10px] text-zinc-500 truncate">{currentPersona.title}</span>
           </div>
-        </div>
-        <div className="flex items-center justify-between px-2 text-[10px] text-slate-500 font-mono">
-          <span>SIH PS: 26044</span>
-          <span className="text-emerald-400 font-semibold">Ready</span>
         </div>
       </div>
     </aside>

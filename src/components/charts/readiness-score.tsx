@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ShieldCheck, Code, Award, Target, Sparkles } from "lucide-react";
+import { ShieldCheck, Code, Award, Target, Activity } from "lucide-react";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useStudentContext } from "@/context/student-context";
@@ -23,123 +23,106 @@ export function ReadinessScoreCard() {
       ? "Internship Ready"
       : "Foundation Building";
 
-  const tierVariant =
-    readinessScore >= 90
-      ? "success"
-      : readinessScore >= 75
-      ? "default"
-      : readinessScore >= 60
-      ? "warning"
-      : "purple";
-
   return (
-    <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900/90 via-slate-900/60 to-slate-950 p-6 backdrop-blur-xl shadow-xl">
-      <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 shadow-none">
+      <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-indigo-400" />
-          <h3 className="text-base font-bold text-white">Aggregate Readiness Engine</h3>
+          <Activity className="h-4 w-4 text-emerald-500" />
+          <h3 className="text-sm font-semibold text-zinc-100">Aggregate Readiness Engine</h3>
         </div>
-        <Badge variant={tierVariant} dot>
+        <Badge variant={readinessScore >= 75 ? "success" : "default"} dot>
           {tier}
         </Badge>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center pt-5">
-        {/* Big Circular Score */}
-        <div className="md:col-span-4 flex flex-col items-center justify-center p-2">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center pt-4">
+        {/* Circular Score */}
+        <div className="md:col-span-4 flex flex-col items-center justify-center p-1">
           <Tooltip
             content={
-              <div className="space-y-1 text-[11px]">
-                <p className="font-bold text-white">SIH Ground-Truth Formula:</p>
-                <p>40% Avg Verified Skill Score</p>
-                <p>25% GitHub Telemetry & AST Quality</p>
-                <p>20% Tamper-Proof Cert Confidence</p>
-                <p>15% Completed Bounty PRs</p>
+              <div className="space-y-1 text-[11px] font-mono">
+                <p className="font-bold text-zinc-100">SIH Ground-Truth Weights:</p>
+                <p>40% Verified Skill Scores</p>
+                <p>25% GitHub Telemetry & AST</p>
+                <p>20% Tamper-Proof Certs</p>
+                <p>15% Completed Bounties</p>
               </div>
             }
           >
-            <div className="cursor-pointer transition-transform hover:scale-105">
+            <div className="cursor-pointer">
               <ScoreRing
                 score={readinessScore}
-                size={130}
-                strokeWidth={11}
+                size={110}
+                strokeWidth={8}
                 label="Readiness"
-                colorScheme={readinessScore >= 80 ? "emerald" : "indigo"}
+                colorScheme="emerald"
               />
             </div>
           </Tooltip>
-          <p className="mt-3 text-xs text-slate-400 text-center font-mono">
-            Hover for formula breakdown
+          <p className="mt-2 text-[10px] text-zinc-500 text-center font-mono">
+            Hover ring for breakdown
           </p>
         </div>
 
-        {/* 4 Pillars Breakdown */}
-        <div className="md:col-span-8 space-y-3">
+        {/* 4 Pillars Breakdown (Dense 1px border list) */}
+        <div className="md:col-span-8 space-y-1.5">
           <Tooltip content="Computed across all platform-verified skill challenges and assessments">
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 cursor-default hover:border-slate-700 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  <Target className="h-4 w-4" />
-                </div>
+            <div className="flex items-center justify-between px-3 py-2 rounded border border-zinc-800 bg-zinc-950/60 cursor-default hover:bg-zinc-900/80 transition-colors">
+              <div className="flex items-center gap-2.5">
+                <Target className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
                 <div>
-                  <p className="text-xs font-semibold text-slate-200">Verified Skill Nodes</p>
-                  <p className="text-[10px] text-slate-400">
-                    {verifiedSkillsCount} of {skills.length} skills platform-verified
+                  <p className="text-xs font-medium text-zinc-200">Verified Skill Nodes</p>
+                  <p className="text-[10px] text-zinc-500 font-mono">
+                    {verifiedSkillsCount} of {skills.length} skills verified
                   </p>
                 </div>
               </div>
-              <span className="text-xs font-mono font-bold text-indigo-400">40% Weight</span>
+              <span className="text-xs font-mono font-medium text-zinc-300">40%</span>
             </div>
           </Tooltip>
 
           <Tooltip content="Analyzes repository health, commit velocity, and language diversity via GitHub API">
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 cursor-default hover:border-slate-700 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  <Code className="h-4 w-4" />
-                </div>
+            <div className="flex items-center justify-between px-3 py-2 rounded border border-zinc-800 bg-zinc-950/60 cursor-default hover:bg-zinc-900/80 transition-colors">
+              <div className="flex items-center gap-2.5">
+                <Code className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
                 <div>
-                  <p className="text-xs font-semibold text-slate-200">GitHub Ground-Truth</p>
-                  <p className="text-[10px] text-slate-400">
-                    Tier: {github.devTier} • Quality Score: {github.codeQualityScore}%
+                  <p className="text-xs font-medium text-zinc-200">GitHub Ground-Truth</p>
+                  <p className="text-[10px] text-zinc-500 font-mono">
+                    Tier: {github.devTier} â€¢ Quality: {github.codeQualityScore}%
                   </p>
                 </div>
               </div>
-              <span className="text-xs font-mono font-bold text-emerald-400">25% Weight</span>
+              <span className="text-xs font-mono font-medium text-zinc-300">25%</span>
             </div>
           </Tooltip>
 
           <Tooltip content="Authenticated against institutional registries with cryptographic metadata tamper-checks">
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 cursor-default hover:border-slate-700 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                  <Award className="h-4 w-4" />
-                </div>
+            <div className="flex items-center justify-between px-3 py-2 rounded border border-zinc-800 bg-zinc-950/60 cursor-default hover:bg-zinc-900/80 transition-colors">
+              <div className="flex items-center gap-2.5">
+                <Award className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
                 <div>
-                  <p className="text-xs font-semibold text-slate-200">Tamper-Proof Certs</p>
-                  <p className="text-[10px] text-slate-400">
-                    {verifiedCertsCount} authentic credentials (0 tampering flags)
+                  <p className="text-xs font-medium text-zinc-200">Tamper-Proof Certs</p>
+                  <p className="text-[10px] text-zinc-500 font-mono">
+                    {verifiedCertsCount} authentic credentials (0 flags)
                   </p>
                 </div>
               </div>
-              <span className="text-xs font-mono font-bold text-purple-400">20% Weight</span>
+              <span className="text-xs font-mono font-medium text-zinc-300">20%</span>
             </div>
           </Tooltip>
 
           <Tooltip content="Real-world bug fixes & features submitted and merged on industry partner repositories">
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 cursor-default hover:border-slate-700 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  <ShieldCheck className="h-4 w-4" />
-                </div>
+            <div className="flex items-center justify-between px-3 py-2 rounded border border-zinc-800 bg-zinc-950/60 cursor-default hover:bg-zinc-900/80 transition-colors">
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
                 <div>
-                  <p className="text-xs font-semibold text-slate-200">Industry Bounties Solved</p>
-                  <p className="text-[10px] text-slate-400">
-                    {completedBountiesCount} verified merged PRs on company sandboxes
+                  <p className="text-xs font-medium text-zinc-200">Industry Bounties</p>
+                  <p className="text-[10px] text-zinc-500 font-mono">
+                    {completedBountiesCount} verified PRs merged
                   </p>
                 </div>
               </div>
-              <span className="text-xs font-mono font-bold text-amber-400">15% Weight</span>
+              <span className="text-xs font-mono font-medium text-zinc-300">15%</span>
             </div>
           </Tooltip>
         </div>

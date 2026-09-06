@@ -10,21 +10,21 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, badgeText, children }: PageHeaderProps) {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-800/80">
-      <div className="space-y-1">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+      <div className="space-y-0.5">
+        <div className="flex items-center gap-2.5">
+          <h1 className="text-base sm:text-lg font-bold tracking-tight text-zinc-100">
             {title}
           </h1>
           {badgeText && (
-            <Badge variant="default" dot>
+            <Badge variant="outline" dot>
               {badgeText}
             </Badge>
           )}
         </div>
-        <p className="text-sm text-slate-400 max-w-3xl leading-relaxed">{subtitle}</p>
+        <p className="text-xs text-zinc-400 leading-snug">{subtitle}</p>
       </div>
-      {children && <div className="flex items-center gap-3 shrink-0">{children}</div>}
+      {children && <div className="flex items-center gap-2 shrink-0">{children}</div>}
     </div>
   );
 }
