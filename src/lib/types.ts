@@ -277,3 +277,45 @@ export interface PersonaProfile {
   organization: string;
   avatar: string;
 }
+
+export interface AuditEvidenceClaim {
+  id: string;
+  studentId: string;
+  studentName: string;
+  evidenceType: "Certificate" | "Sandbox" | "Bounty" | "GitHub";
+  title: string;
+  issuer: string;
+  credentialId?: string;
+  score: number;
+  confidenceScore: number;
+  dateUploaded: string;
+  skills: string[];
+  flagReason?: string;
+  status: "pending" | "approved" | "flagged";
+  securityAuditTrail?: string;
+}
+
+export interface DepartmentSkillGap {
+  pillar: string;
+  score: number;
+  status: "Strong" | "Adequate" | "Moderate" | "Critical Deficit";
+  color: string;
+  textColor: string;
+}
+
+export interface InstitutionalMetrics {
+  cohortSize: number;
+  cohortMeanReadiness: number;
+  lorsMinted: number;
+  obsolescenceRiskDelta: number;
+  placementVelocity: number;
+}
+
+export interface RecruiterAuditLog {
+  id: string;
+  action: string;
+  targetCandidate: string;
+  timestamp: string;
+  verificationHash: string;
+  status: "verified" | "flagged";
+}

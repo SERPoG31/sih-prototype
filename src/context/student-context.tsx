@@ -1,29 +1,40 @@
 "use client";
 
-import React, { createContext, useContext, useState, useMemo, useEffect } from "react";
+import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
+  AuditEvidenceClaim,
   BountyChallenge,
   CertificateRecord,
   CohortStudent,
+  DepartmentSkillGap,
   GitHubTelemetry,
+  InstitutionalMetrics,
   LetterOfRecommendation,
   PersonaProfile,
+  RecruiterAuditLog,
   SkillNode,
 } from "@/lib/types";
 import {
   COHORT_STUDENTS,
   DEMO_PERSONAS,
+  INITIAL_AUDIT_CLAIMS,
   INITIAL_BOUNTIES,
   INITIAL_CERTIFICATES,
+  INITIAL_DEPARTMENT_SKILL_GAPS,
+  INITIAL_FACULTY_DIRECTIVE,
   INITIAL_GITHUB,
+  INITIAL_INSTITUTIONAL_METRICS,
   INITIAL_LORS,
+  INITIAL_RECRUITER_AUDIT_LOGS,
   INITIAL_SKILLS,
 } from "@/lib/mock-data";
 
-interface StudentContextType {
+export interface StudentContextType {
   currentPersona: PersonaProfile;
   personas: PersonaProfile[];
-  switchPersona: (personaId: string) => void;
+  switchPersona: (personaId: string, options?: { redirect?: boolean }) => void;
+  // Student active states
   skills: SkillNode[];
   certificates: CertificateRecord[];
   github: GitHubTelemetry;
@@ -32,6 +43,18 @@ interface StudentContextType {
   cohortStudents: CohortStudent[];
   verifiedBadges: string[];
   readinessScore: number;
+
+  // Evaluator-specific states
+  pendingAudits: AuditEvidenceClaim[];
+  institutionalMetrics: InstitutionalMetrics;
+  departmentSkillGaps: DepartmentSkillGap[];
+  facultyDirective: string;
+
+  // Recruiter-specific states
+  activeBountiesPosted: BountyChallenge[];
+  talentShortlist: CohortStudent[];
+  auditLogs: RecruiterAuditLog[];
+
   // Actions
   addVerifiedSkill: (
     skillName: string,
@@ -52,6 +75,8 @@ interface StudentContextType {
   addIssuedLOR: (lor: LetterOfRecommendation) => void;
   toggleLORPortfolioDisplay: (lorId: string) => void;
   updateCohortStudent: (studentId: string, updates: Partial<CohortStudent>) => void;
+  approveAuditClaim: (claimId: string) => void;
+  flagAuditClaim: (claimId: string, reason?: string) => void;
   resetToDefaults: () => void;
 }
 
@@ -65,82 +90,168 @@ const INITIAL_BADGES = [
   "GitHub Verified Dev: Advanced",
 ];
 
+interface StudentStore {
+  skills: SkillNode[];
+  certificates: CertificateRecord[];
+  github: GitHubTelemetry;
+  bounties: BountyChallenge[];
+  lors: LetterOfRecommendation[];
+  verifiedBadges: string[];
+}
+
+interface EvaluatorStore {
+  cohortStudents: CohortStudent[];
+  pendingAudits: AuditEvidenceClaim[];
+  institutionalMetrics: InstitutionalMetrics;
+  departmentSkillGaps: DepartmentSkillGap[];
+  facultyDirective: string;
+}
+
+interface RecruiterStore {
+  activeBountiesPosted: BountyChallenge[];
+  talentShortlist: CohortStudent[];
+  auditLogs: RecruiterAuditLog[];
+}
+
+const DEFAULT_STUDENT_STORE: StudentStore = {
+  skills: INITIAL_SKILLS,
+  certificates: INITIAL_CERTIFICATES,
+  github: INITIAL_GITHUB,
+  bounties: INITIAL_BOUNTIES,
+  lors: INITIAL_LORS,
+  verifiedBadges: INITIAL_BADGES,
+};
+
+const DEFAULT_EVALUATOR_STORE: EvaluatorStore = {
+  cohortStudents: COHORT_STUDENTS,
+  pendingAudits: INITIAL_AUDIT_CLAIMS,
+  institutionalMetrics: INITIAL_INSTITUTIONAL_METRICS,
+  departmentSkillGaps: INITIAL_DEPARTMENT_SKILL_GAPS,
+  facultyDirective: INITIAL_FACULTY_DIRECTIVE,
+};
+
+const DEFAULT_RECRUITER_STORE: RecruiterStore = {
+  activeBountiesPosted: INITIAL_BOUNTIES,
+  talentShortlist: COHORT_STUDENTS.filter((s) => s.readinessScore >= 85),
+  auditLogs: INITIAL_RECRUITER_AUDIT_LOGS,
+};
+
 export function StudentProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+
+  // Persona State
   const [currentPersona, setCurrentPersona] = useState<PersonaProfile>(DEMO_PERSONAS[0]);
-  const [skills, setSkills] = useState<SkillNode[]>(INITIAL_SKILLS);
-  const [certificates, setCertificates] = useState<CertificateRecord[]>(INITIAL_CERTIFICATES);
-  const [github, setGithub] = useState<GitHubTelemetry>(INITIAL_GITHUB);
-  const [bounties, setBounties] = useState<BountyChallenge[]>(INITIAL_BOUNTIES);
-  const [lors, setLors] = useState<LetterOfRecommendation[]>(INITIAL_LORS);
-  const [cohortStudents, setCohortStudents] = useState<CohortStudent[]>(COHORT_STUDENTS);
-  const [verifiedBadges, setVerifiedBadges] = useState<string[]>(INITIAL_BADGES);
 
-  // Hydrate from localStorage on client mount if available
-  useEffect(() => {
+  // Isolated Stores
+  const [studentStore, setStudentStore] = useState<StudentStore>(DEFAULT_STUDENT_STORE);
+  const [evaluatorStore, setEvaluatorStore] = useState<EvaluatorStore>(DEFAULT_EVALUATOR_STORE);
+  const [recruiterStore, setRecruiterStore] = useState<RecruiterStore>(DEFAULT_RECRUITER_STORE);
+
+  // Persistence Helper
+  const persistState = useCallback((key: string, data: unknown) => {
     try {
-      const savedPersona = localStorage.getItem("skillnexus_persona");
-      if (savedPersona) {
-        const found = DEMO_PERSONAS.find((p) => p.id === savedPersona);
-        if (found) setCurrentPersona(found);
+      localStorage.setItem(key, JSON.stringify(data));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("skillnexus_state_sync", { detail: { key } }));
       }
-
-      const savedSkills = localStorage.getItem("skillnexus_skills");
-      if (savedSkills) setSkills(JSON.parse(savedSkills));
-
-      const savedCerts = localStorage.getItem("skillnexus_certs");
-      if (savedCerts) setCertificates(JSON.parse(savedCerts));
-
-      const savedGithub = localStorage.getItem("skillnexus_github");
-      if (savedGithub) setGithub(JSON.parse(savedGithub));
-
-      const savedBounties = localStorage.getItem("skillnexus_bounties");
-      if (savedBounties) setBounties(JSON.parse(savedBounties));
-
-      const savedLors = localStorage.getItem("skillnexus_lors");
-      if (savedLors) setLors(JSON.parse(savedLors));
-
-      const savedCohort = localStorage.getItem("skillnexus_cohort");
-      if (savedCohort) setCohortStudents(JSON.parse(savedCohort));
-
-      const savedBadges = localStorage.getItem("skillnexus_badges");
-      if (savedBadges) setVerifiedBadges(JSON.parse(savedBadges));
     } catch {
-      // ignore storage access issues
+      // Ignore storage errors
     }
   }, []);
 
-  // Cross-tab and in-session reactive broadcast listener
+  // Hydrate all isolated stores on client mount
+  useEffect(() => {
+    try {
+      // 1. Resolve Persona
+      const savedPersonaId =
+        localStorage.getItem("skillnexus_active_persona") ||
+        localStorage.getItem("skillnexus_persona") ||
+        localStorage.getItem("active_persona_id");
+
+      if (savedPersonaId) {
+        const normalized = savedPersonaId === "sunita-rao" ? "dr-sunita-rao" : savedPersonaId;
+        const found =
+          DEMO_PERSONAS.find((p) => p.id === normalized) ||
+          DEMO_PERSONAS.find((p) => p.id.includes(normalized.replace("dr-", "")));
+        if (found) setCurrentPersona(found);
+      }
+
+      // 2. Hydrate Student Store
+      const savedStudent = localStorage.getItem("skillnexus_student_data");
+      if (savedStudent) {
+        setStudentStore(JSON.parse(savedStudent));
+      } else {
+        // Check legacy single-keys if available
+        const legacySkills = localStorage.getItem("skillnexus_skills");
+        const legacyCerts = localStorage.getItem("skillnexus_certs");
+        const legacyGithub = localStorage.getItem("skillnexus_github");
+        const legacyBounties = localStorage.getItem("skillnexus_bounties");
+        const legacyLors = localStorage.getItem("skillnexus_lors");
+        const legacyBadges = localStorage.getItem("skillnexus_badges");
+
+        if (legacySkills || legacyCerts || legacyGithub || legacyBounties || legacyLors) {
+          setStudentStore({
+            skills: legacySkills ? JSON.parse(legacySkills) : INITIAL_SKILLS,
+            certificates: legacyCerts ? JSON.parse(legacyCerts) : INITIAL_CERTIFICATES,
+            github: legacyGithub ? JSON.parse(legacyGithub) : INITIAL_GITHUB,
+            bounties: legacyBounties ? JSON.parse(legacyBounties) : INITIAL_BOUNTIES,
+            lors: legacyLors ? JSON.parse(legacyLors) : INITIAL_LORS,
+            verifiedBadges: legacyBadges ? JSON.parse(legacyBadges) : INITIAL_BADGES,
+          });
+        }
+      }
+
+      // 3. Hydrate Evaluator Store
+      const savedEvaluator = localStorage.getItem("skillnexus_evaluator_data");
+      if (savedEvaluator) {
+        setEvaluatorStore(JSON.parse(savedEvaluator));
+      } else {
+        const legacyCohort = localStorage.getItem("skillnexus_cohort");
+        if (legacyCohort) {
+          setEvaluatorStore((prev) => ({
+            ...prev,
+            cohortStudents: JSON.parse(legacyCohort),
+          }));
+        }
+      }
+
+      // 4. Hydrate Recruiter Store
+      const savedRecruiter = localStorage.getItem("skillnexus_recruiter_data");
+      if (savedRecruiter) {
+        setRecruiterStore(JSON.parse(savedRecruiter));
+      }
+    } catch {
+      // Ignore storage access issues in sandboxes
+    }
+  }, []);
+
+  // Listen for state sync broadcast across tabs/windows
   useEffect(() => {
     const handleSync = () => {
       try {
-        const savedPersona = localStorage.getItem("skillnexus_persona");
-        if (savedPersona) {
-          const found = DEMO_PERSONAS.find((p) => p.id === savedPersona);
+        const savedPersonaId =
+          localStorage.getItem("skillnexus_active_persona") ||
+          localStorage.getItem("skillnexus_persona") ||
+          localStorage.getItem("active_persona_id");
+
+        if (savedPersonaId) {
+          const normalized = savedPersonaId === "sunita-rao" ? "dr-sunita-rao" : savedPersonaId;
+          const found =
+            DEMO_PERSONAS.find((p) => p.id === normalized) ||
+            DEMO_PERSONAS.find((p) => p.id.includes(normalized.replace("dr-", "")));
           if (found) setCurrentPersona(found);
         }
 
-        const savedSkills = localStorage.getItem("skillnexus_skills");
-        if (savedSkills) setSkills(JSON.parse(savedSkills));
+        const savedStudent = localStorage.getItem("skillnexus_student_data");
+        if (savedStudent) setStudentStore(JSON.parse(savedStudent));
 
-        const savedCerts = localStorage.getItem("skillnexus_certs");
-        if (savedCerts) setCertificates(JSON.parse(savedCerts));
+        const savedEvaluator = localStorage.getItem("skillnexus_evaluator_data");
+        if (savedEvaluator) setEvaluatorStore(JSON.parse(savedEvaluator));
 
-        const savedGithub = localStorage.getItem("skillnexus_github");
-        if (savedGithub) setGithub(JSON.parse(savedGithub));
-
-        const savedBounties = localStorage.getItem("skillnexus_bounties");
-        if (savedBounties) setBounties(JSON.parse(savedBounties));
-
-        const savedLors = localStorage.getItem("skillnexus_lors");
-        if (savedLors) setLors(JSON.parse(savedLors));
-
-        const savedCohort = localStorage.getItem("skillnexus_cohort");
-        if (savedCohort) setCohortStudents(JSON.parse(savedCohort));
-
-        const savedBadges = localStorage.getItem("skillnexus_badges");
-        if (savedBadges) setVerifiedBadges(JSON.parse(savedBadges));
+        const savedRecruiter = localStorage.getItem("skillnexus_recruiter_data");
+        if (savedRecruiter) setRecruiterStore(JSON.parse(savedRecruiter));
       } catch {
-        // ignore
+        // Ignore
       }
     };
 
@@ -152,297 +263,535 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Save changes to localStorage and broadcast event
-  const persistState = (key: string, data: unknown) => {
-    try {
-      localStorage.setItem(key, JSON.stringify(data));
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("skillnexus_state_sync", { detail: { key } }));
+  // Switching Persona cleanly transitions datasets and redirects
+  const switchPersona = useCallback(
+    (personaId: string, options: { redirect?: boolean } = { redirect: true }) => {
+      const normalized = personaId === "sunita-rao" ? "dr-sunita-rao" : personaId;
+      const target =
+        DEMO_PERSONAS.find((p) => p.id === normalized) ||
+        DEMO_PERSONAS.find((p) => p.id.includes(normalized.replace("dr-", ""))) ||
+        DEMO_PERSONAS[0];
+
+      setCurrentPersona(target);
+
+      try {
+        localStorage.setItem("skillnexus_active_persona", target.id);
+        localStorage.setItem("skillnexus_persona", target.id);
+        localStorage.setItem("active_persona_id", target.id);
+        window.dispatchEvent(
+          new CustomEvent("skillnexus_state_sync", { detail: { personaId: target.id } })
+        );
+      } catch {
+        // Ignore
       }
-    } catch {
-      // ignore
-    }
-  };
 
-  const switchPersona = (personaId: string) => {
-    const found = DEMO_PERSONAS.find((p) => p.id === personaId);
-    if (found) {
-      setCurrentPersona(found);
-      persistState("skillnexus_persona", personaId);
-    }
-  };
+      // Automatic Redirection
+      if (options.redirect !== false) {
+        const isEvaluatorRole =
+          target.role === "evaluator" ||
+          target.role === "institutional" ||
+          target.id.includes("sunita");
+        const isRecruiterRole = target.role === "recruiter" || target.id.includes("vikram");
 
-  const addVerifiedSkill = (
-    skillName: string,
-    score: number,
-    source: "Certificate" | "GitHub" | "SkillCheck" | "Bounty" | "MockInterview",
-    category: SkillNode["category"] = "Backend"
-  ) => {
-    setSkills((prev) => {
-      const existing = prev.find((s) => s.name.toLowerCase() === skillName.toLowerCase());
-      let updated: SkillNode[];
-      if (existing) {
-        updated = prev.map((s) => {
-          if (s.name.toLowerCase() === skillName.toLowerCase()) {
-            const sources = Array.from(new Set([...s.sources, source]));
-            return {
-              ...s,
-              score: Math.min(100, Math.max(s.score, score)),
-              verified: true,
-              evidenceCount: s.evidenceCount + 1,
-              sources,
-            };
+        const targetPath = isEvaluatorRole
+          ? "/dashboard/evaluator"
+          : isRecruiterRole
+          ? "/bounties"
+          : "/dashboard";
+
+        try {
+          router.push(targetPath);
+        } catch {
+          if (typeof window !== "undefined") {
+            window.location.assign(targetPath);
           }
-          return s;
-        });
-      } else {
-        updated = [
-          ...prev,
-          {
-            name: skillName,
-            category,
-            score,
-            verified: true,
-            evidenceCount: 1,
-            sources: [source],
-          },
-        ];
-      }
-      persistState("skillnexus_skills", updated);
-      return updated;
-    });
-  };
-
-  const awardBadge = (badgeName: string) => {
-    setVerifiedBadges((prev) => {
-      if (prev.includes(badgeName)) return prev;
-      const updated = [badgeName, ...prev];
-      persistState("skillnexus_badges", updated);
-      return updated;
-    });
-  };
-
-  const addVerifiedCertificate = (cert: CertificateRecord) => {
-    setCertificates((prev) => {
-      const updated = [cert, ...prev];
-      persistState("skillnexus_certs", updated);
-      return updated;
-    });
-
-    // Automatically boost related skills
-    cert.skillsAwarded.forEach((skill) => {
-      addVerifiedSkill(skill, cert.confidenceScore, "Certificate");
-    });
-
-    // Update Arjun's record in cohort roster
-    setCohortStudents((prev) => {
-      const updated = prev.map((s) => {
-        if (s.studentId === "2026-CS-041" || s.id === "arjun-kumar") {
-          return {
-            ...s,
-            verificationStatus: {
-              ...s.verificationStatus,
-              certificatesVerified: s.verificationStatus.certificatesVerified + 1,
-            },
-          };
         }
-        return s;
+      }
+    },
+    [router]
+  );
+
+  // Student Actions
+  const addVerifiedSkill = useCallback(
+    (
+      skillName: string,
+      score: number,
+      source: "Certificate" | "GitHub" | "SkillCheck" | "Bounty" | "MockInterview",
+      category: SkillNode["category"] = "Backend"
+    ) => {
+      setStudentStore((prev) => {
+        const existing = prev.skills.find(
+          (s) => s.name.toLowerCase() === skillName.toLowerCase()
+        );
+        let updated: SkillNode[];
+        if (existing) {
+          updated = prev.skills.map((s) => {
+            if (s.name.toLowerCase() === skillName.toLowerCase()) {
+              const sources = Array.from(new Set([...s.sources, source]));
+              return {
+                ...s,
+                score: Math.min(100, Math.max(s.score, score)),
+                verified: true,
+                evidenceCount: s.evidenceCount + 1,
+                sources,
+              };
+            }
+            return s;
+          });
+        } else {
+          updated = [
+            ...prev.skills,
+            {
+              name: skillName,
+              category,
+              score,
+              verified: true,
+              evidenceCount: 1,
+              sources: [source],
+            },
+          ];
+        }
+        const next = { ...prev, skills: updated };
+        persistState("skillnexus_student_data", next);
+        return next;
       });
-      persistState("skillnexus_cohort", updated);
-      return updated;
-    });
+    },
+    [persistState]
+  );
 
-    awardBadge(`${cert.issuer} Verified: ${cert.courseTitle.slice(0, 24)}...`);
-  };
+  const awardBadge = useCallback(
+    (badgeName: string) => {
+      setStudentStore((prev) => {
+        if (prev.verifiedBadges.includes(badgeName)) return prev;
+        const updated = [badgeName, ...prev.verifiedBadges];
+        const next = { ...prev, verifiedBadges: updated };
+        persistState("skillnexus_student_data", next);
+        return next;
+      });
+    },
+    [persistState]
+  );
 
-  const updateGitHubProfile = (telemetry: Partial<GitHubTelemetry>) => {
-    setGithub((prev) => {
-      const updated = { ...prev, ...telemetry, verifiedAt: new Date().toISOString() };
-      persistState("skillnexus_github", updated);
-      return updated;
-    });
+  const addVerifiedCertificate = useCallback(
+    (cert: CertificateRecord) => {
+      setStudentStore((prev) => {
+        const updated = [cert, ...prev.certificates.filter((c) => c.id !== cert.id)];
+        const next = { ...prev, certificates: updated };
+        persistState("skillnexus_student_data", next);
+        return next;
+      });
 
-    if (telemetry.codeQualityScore || telemetry.devTier) {
-      setCohortStudents((prev) => {
-        const updated = prev.map((s) => {
+      cert.skillsAwarded.forEach((skill) => {
+        addVerifiedSkill(skill, cert.confidenceScore, "Certificate");
+      });
+
+      // Update Arjun in cohort roster
+      setEvaluatorStore((prev) => {
+        const updatedCohort = prev.cohortStudents.map((s) => {
           if (s.studentId === "2026-CS-041" || s.id === "arjun-kumar") {
             return {
               ...s,
-              devTier: telemetry.devTier || s.devTier,
               verificationStatus: {
                 ...s.verificationStatus,
-                githubQualityScore: telemetry.codeQualityScore || s.verificationStatus.githubQualityScore,
+                certificatesVerified: s.verificationStatus.certificatesVerified + 1,
               },
             };
           }
           return s;
         });
-        persistState("skillnexus_cohort", updated);
-        return updated;
+        const next = { ...prev, cohortStudents: updatedCohort };
+        persistState("skillnexus_evaluator_data", next);
+        return next;
       });
-    }
 
-    if (telemetry.devTier) {
-      awardBadge(`GitHub Verified Dev: ${telemetry.devTier}`);
-    }
-  };
+      awardBadge(`${cert.issuer} Verified: ${cert.courseTitle.slice(0, 24)}...`);
+    },
+    [addVerifiedSkill, awardBadge, persistState]
+  );
 
-  const recordBountyScore = (
-    bountyId: string,
-    score: number,
-    prUrl: string,
-    tags: string[] = ["TypeScript", "Next.js"],
-    company: string = "Industry Partner"
-  ) => {
-    setBounties((prev) => {
-      const exists = prev.some((b) => b.id === bountyId);
-      let updated: BountyChallenge[];
-      if (exists) {
-        updated = prev.map((b) => {
-          if (b.id === bountyId) {
+  const updateGitHubProfile = useCallback(
+    (telemetry: Partial<GitHubTelemetry>) => {
+      setStudentStore((prev) => {
+        const updated = {
+          ...prev.github,
+          ...telemetry,
+          verifiedAt: new Date().toISOString(),
+        };
+        const next = { ...prev, github: updated };
+        persistState("skillnexus_student_data", next);
+        return next;
+      });
+
+      if (telemetry.codeQualityScore || telemetry.devTier) {
+        setEvaluatorStore((prev) => {
+          const updatedCohort = prev.cohortStudents.map((s) => {
+            if (s.studentId === "2026-CS-041" || s.id === "arjun-kumar") {
+              return {
+                ...s,
+                devTier: telemetry.devTier || s.devTier,
+                verificationStatus: {
+                  ...s.verificationStatus,
+                  githubQualityScore:
+                    telemetry.codeQualityScore || s.verificationStatus.githubQualityScore,
+                },
+              };
+            }
+            return s;
+          });
+          const next = { ...prev, cohortStudents: updatedCohort };
+          persistState("skillnexus_evaluator_data", next);
+          return next;
+        });
+      }
+
+      if (telemetry.devTier) {
+        awardBadge(`GitHub Verified Dev: ${telemetry.devTier}`);
+      }
+    },
+    [awardBadge, persistState]
+  );
+
+  const recordBountyScore = useCallback(
+    (
+      bountyId: string,
+      score: number,
+      prUrl: string,
+      tags: string[] = ["TypeScript", "Next.js"],
+      company: string = "Industry Partner"
+    ) => {
+      setStudentStore((prev) => {
+        const exists = prev.bounties.some((b) => b.id === bountyId);
+        let updated: BountyChallenge[];
+        if (exists) {
+          updated = prev.bounties.map((b) => {
+            if (b.id === bountyId) {
+              return {
+                ...b,
+                status: "Completed" as const,
+                submittedPrUrl: prUrl,
+                autoScorePreview: score,
+              };
+            }
+            return b;
+          });
+        } else {
+          const newChallenge: BountyChallenge = {
+            id: bountyId,
+            title: `Bounty: ${bountyId}`,
+            company,
+            rewardINR: 50000,
+            timeRemainingHours: 0,
+            difficulty: "Hard",
+            requiredSkills: tags,
+            description: "Completed industry bounty challenge verified via GitHub PR.",
+            prSubmissionCount: 1,
+            testChecklist: ["CI Test Suite Passed", "AST Compliance", "Zero Memory Leak"],
+            status: "Completed",
+            submittedPrUrl: prUrl,
+            autoScorePreview: score,
+          };
+          updated = [newChallenge, ...prev.bounties];
+        }
+        const next = { ...prev, bounties: updated };
+        persistState("skillnexus_student_data", next);
+        return next;
+      });
+
+      const skillsToAward = tags && tags.length > 0 ? tags : ["Full-Stack Architecture", "TypeScript"];
+      skillsToAward.forEach((skill) => {
+        addVerifiedSkill(skill, score, "Bounty");
+      });
+      awardBadge(`Bounty Victor: ${company} (${score}%)`);
+    },
+    [addVerifiedSkill, awardBadge, persistState]
+  );
+
+  const addIssuedLOR = useCallback(
+    (lor: LetterOfRecommendation) => {
+      setStudentStore((prev) => {
+        const updated = [lor, ...prev.lors];
+        const next = { ...prev, lors: updated };
+        persistState("skillnexus_student_data", next);
+        return next;
+      });
+
+      setEvaluatorStore((prev) => {
+        const updated = prev.cohortStudents.map((s) => {
+          if (
+            s.studentId === lor.studentId ||
+            s.name.toLowerCase() === lor.studentName.toLowerCase() ||
+            (lor.studentId === "2026-CS-041" && s.id === "arjun-kumar")
+          ) {
             return {
-              ...b,
-              status: "Completed" as const,
-              submittedPrUrl: prUrl,
-              autoScorePreview: score,
+              ...s,
+              readinessScore: Math.min(99, s.readinessScore + 2),
+              lorsIssuedCount: (s.lorsIssuedCount || 0) + 1,
             };
           }
-          return b;
+          return s;
         });
-      } else {
-        const newChallenge: BountyChallenge = {
-          id: bountyId,
-          title: `Bounty: ${bountyId}`,
-          company,
-          rewardINR: 50000,
-          timeRemainingHours: 0,
-          difficulty: "Hard",
-          requiredSkills: tags,
-          description: "Completed industry bounty challenge verified via GitHub PR.",
-          prSubmissionCount: 1,
-          testChecklist: ["CI Test Suite Passed", "AST Compliance", "Zero Memory Leak"],
-          status: "Completed",
-          submittedPrUrl: prUrl,
-          autoScorePreview: score,
+        const next = {
+          ...prev,
+          cohortStudents: updated,
+          institutionalMetrics: {
+            ...prev.institutionalMetrics,
+            lorsMinted: prev.institutionalMetrics.lorsMinted + 1,
+          },
         };
-        updated = [newChallenge, ...prev];
+        persistState("skillnexus_evaluator_data", next);
+        return next;
+      });
+
+      if (lor.metricRatings.technicalProficiency >= 4) {
+        addVerifiedSkill("Full-Stack Architecture", 94, "Certificate", "Backend");
       }
-      persistState("skillnexus_bounties", updated);
-      return updated;
-    });
+      if (lor.metricRatings.systemArchitecture >= 4) {
+        addVerifiedSkill("System Design", 92, "Certificate", "System Design");
+      }
 
-    const skillsToAward = tags && tags.length > 0 ? tags : ["Full-Stack Architecture", "TypeScript"];
-    skillsToAward.forEach((skill) => {
-      addVerifiedSkill(skill, score, "Bounty");
-    });
-    awardBadge(`Bounty Victor: ${company} (${score}%)`);
-  };
+      awardBadge(`Cryptographic LOR by ${lor.evaluatorName}`);
+    },
+    [addVerifiedSkill, awardBadge, persistState]
+  );
 
-  const addIssuedLOR = (lor: LetterOfRecommendation) => {
-    setLors((prev) => {
-      const updated = [lor, ...prev];
-      persistState("skillnexus_lors", updated);
-      return updated;
-    });
-
-    // Evaluator action: Update student record in cohort roster
-    setCohortStudents((prev) => {
-      const updated = prev.map((s) => {
-        if (
-          s.studentId === lor.studentId ||
-          s.name.toLowerCase() === lor.studentName.toLowerCase() ||
-          (lor.studentId === "2026-CS-041" && s.id === "arjun-kumar")
-        ) {
-          return {
-            ...s,
-            readinessScore: Math.min(99, s.readinessScore + 2),
-            lorsIssuedCount: (s.lorsIssuedCount || 0) + 1,
-          };
-        }
-        return s;
+  const toggleLORPortfolioDisplay = useCallback(
+    (lorId: string) => {
+      setStudentStore((prev) => {
+        const updated = prev.lors.map((lor) => {
+          if (lor.id === lorId) {
+            return {
+              ...lor,
+              displayOnPortfolio: lor.displayOnPortfolio === false ? true : false,
+            };
+          }
+          return lor;
+        });
+        const next = { ...prev, lors: updated };
+        persistState("skillnexus_student_data", next);
+        return next;
       });
-      persistState("skillnexus_cohort", updated);
-      return updated;
-    });
+    },
+    [persistState]
+  );
 
-    // Credit high scores to skills based on rubric
-    if (lor.metricRatings.technicalProficiency >= 4) {
-      addVerifiedSkill("Full-Stack Architecture", 94, "Certificate", "Backend");
-    }
-    if (lor.metricRatings.systemArchitecture >= 4) {
-      addVerifiedSkill("System Design", 92, "Certificate", "System Design");
-    }
-
-    awardBadge(`Cryptographic LOR by ${lor.evaluatorName}`);
-  };
-
-  const toggleLORPortfolioDisplay = (lorId: string) => {
-    setLors((prev) => {
-      const updated = prev.map((lor) => {
-        if (lor.id === lorId) {
-          return {
-            ...lor,
-            displayOnPortfolio: lor.displayOnPortfolio === false ? true : false,
-          };
-        }
-        return lor;
+  const updateCohortStudent = useCallback(
+    (studentId: string, updates: Partial<CohortStudent>) => {
+      setEvaluatorStore((prev) => {
+        const updated = prev.cohortStudents.map((s) => {
+          if (s.studentId === studentId || s.id === studentId) {
+            return { ...s, ...updates };
+          }
+          return s;
+        });
+        const next = { ...prev, cohortStudents: updated };
+        persistState("skillnexus_evaluator_data", next);
+        return next;
       });
-      persistState("skillnexus_lors", updated);
-      return updated;
-    });
-  };
+    },
+    [persistState]
+  );
 
-  const updateCohortStudent = (studentId: string, updates: Partial<CohortStudent>) => {
-    setCohortStudents((prev) => {
-      const updated = prev.map((s) => {
-        if (s.studentId === studentId || s.id === studentId) {
-          return { ...s, ...updates };
+  // Evaluator Hub Actions: Approve & Flag
+  const approveAuditClaim = useCallback(
+    (claimId: string) => {
+      setEvaluatorStore((prev) => {
+        const claim = prev.pendingAudits.find((c) => c.id === claimId);
+        if (!claim) return prev;
+
+        const updatedAudits = prev.pendingAudits.map((c) =>
+          c.id === claimId
+            ? {
+                ...c,
+                status: "approved" as const,
+                confidenceScore: Math.max(c.confidenceScore, 96),
+              }
+            : c
+        );
+
+        // Update student in cohort roster
+        let updatedCohort = prev.cohortStudents;
+        if (claim.studentId === "2026-CS-041") {
+          updatedCohort = prev.cohortStudents.map((s) => {
+            if (s.studentId === "2026-CS-041" || s.id === "arjun-kumar") {
+              return {
+                ...s,
+                readinessScore: 96,
+                verificationStatus: {
+                  ...s.verificationStatus,
+                  certificatesVerified: Math.max(
+                    s.verificationStatus.certificatesVerified + 1,
+                    s.verificationStatus.totalCertificates
+                  ),
+                  sandboxPassed: true,
+                  githubQualityScore: Math.max(s.verificationStatus.githubQualityScore, 94),
+                },
+              };
+            }
+            return s;
+          });
+
+          // Cross-Persona Write-through: Commit directly to Arjun's isolated student profile
+          setStudentStore((sPrev) => {
+            let updatedSkills = [...sPrev.skills];
+            claim.skills.forEach((skName) => {
+              const ex = updatedSkills.find(
+                (s) => s.name.toLowerCase() === skName.toLowerCase()
+              );
+              if (ex) {
+                updatedSkills = updatedSkills.map((s) =>
+                  s.name.toLowerCase() === skName.toLowerCase()
+                    ? {
+                        ...s,
+                        score: Math.max(s.score, 95),
+                        verified: true,
+                        evidenceCount: s.evidenceCount + 1,
+                      }
+                    : s
+                );
+              } else {
+                updatedSkills.push({
+                  name: skName,
+                  category: "Cloud/DevOps",
+                  score: 95,
+                  verified: true,
+                  evidenceCount: 1,
+                  sources: ["Certificate"],
+                });
+              }
+            });
+
+            const newCert: CertificateRecord = {
+              id: `cert-approved-${Date.now()}`,
+              studentName: claim.studentName,
+              issuer: claim.issuer,
+              courseTitle: claim.title,
+              issueDate: "2026-09-06",
+              verificationHash: `sha256-approved-dean-${Date.now()}`,
+              confidenceScore: 98,
+              status: "verified",
+              tamperingFlags: [],
+              skillsAwarded: claim.skills,
+              credentialId: claim.credentialId,
+              registryConfirmed: true,
+            };
+
+            const updatedCerts = [
+              newCert,
+              ...sPrev.certificates.filter((c) => c.credentialId !== claim.credentialId),
+            ];
+            const updatedBadges = Array.from(
+              new Set([`${claim.issuer} Verified Credential`, ...sPrev.verifiedBadges])
+            );
+
+            const nextStudentStore = {
+              ...sPrev,
+              skills: updatedSkills,
+              certificates: updatedCerts,
+              verifiedBadges: updatedBadges,
+            };
+            persistState("skillnexus_student_data", nextStudentStore);
+            return nextStudentStore;
+          });
         }
-        return s;
-      });
-      persistState("skillnexus_cohort", updated);
-      return updated;
-    });
-  };
 
-  const resetToDefaults = () => {
+        const nextEvaluatorStore = {
+          ...prev,
+          pendingAudits: updatedAudits,
+          cohortStudents: updatedCohort,
+          institutionalMetrics: {
+            ...prev.institutionalMetrics,
+            cohortMeanReadiness: 86.8,
+          },
+        };
+        persistState("skillnexus_evaluator_data", nextEvaluatorStore);
+        return nextEvaluatorStore;
+      });
+    },
+    [persistState]
+  );
+
+  const flagAuditClaim = useCallback(
+    (claimId: string, reason: string = "Suspected splicing or non-matching registry ID") => {
+      setEvaluatorStore((prev) => {
+        const updatedAudits = prev.pendingAudits.map((c) =>
+          c.id === claimId
+            ? {
+                ...c,
+                status: "flagged" as const,
+                confidenceScore: 42,
+                flagReason: reason,
+                securityAuditTrail: `Dean Flagged on ${new Date().toLocaleTimeString()} - Reason: ${reason}`,
+              }
+            : c
+        );
+
+        const nextEvaluatorStore = {
+          ...prev,
+          pendingAudits: updatedAudits,
+        };
+        persistState("skillnexus_evaluator_data", nextEvaluatorStore);
+        return nextEvaluatorStore;
+      });
+    },
+    [persistState]
+  );
+
+  const resetToDefaults = useCallback(() => {
     setCurrentPersona(DEMO_PERSONAS[0]);
-    setSkills(INITIAL_SKILLS);
-    setCertificates(INITIAL_CERTIFICATES);
-    setGithub(INITIAL_GITHUB);
-    setBounties(INITIAL_BOUNTIES);
-    setLors(INITIAL_LORS);
-    setCohortStudents(COHORT_STUDENTS);
-    setVerifiedBadges(INITIAL_BADGES);
+    setStudentStore(DEFAULT_STUDENT_STORE);
+    setEvaluatorStore(DEFAULT_EVALUATOR_STORE);
+    setRecruiterStore(DEFAULT_RECRUITER_STORE);
     try {
       localStorage.clear();
+      localStorage.setItem("skillnexus_active_persona", "arjun-kumar");
+      localStorage.setItem("skillnexus_persona", "arjun-kumar");
+      localStorage.setItem("active_persona_id", "arjun-kumar");
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("skillnexus_state_sync", { detail: { key: "all" } }));
       }
     } catch {
-      // ignore
+      // Ignore
     }
-  };
+  }, []);
 
-  // Dynamically calculate aggregate Readiness Score (0-100)
-  // SIH 2026 Official Formula:
-  // Readiness Score = (0.40 * Skills) + (0.25 * GitHub AST) + (0.20 * Certs) + (0.15 * Bounties)
+  // Compute Persona-Specific Readiness Score
+  // Student: (0.40 * Skills) + (0.25 * GitHub AST) + (0.20 * Certs) + (0.15 * Bounties)
+  // Evaluator: Institutional Cohort Mean Readiness (86.4%)
+  // Recruiter: Tier-1 Talent Pool Benchmark (91.2%)
   const readinessScore = useMemo(() => {
-    const verifiedSkillsList = skills.filter((s) => s.verified);
+    const isEvaluatorRole =
+      currentPersona.role === "evaluator" ||
+      currentPersona.role === "institutional" ||
+      currentPersona.id.includes("sunita");
+
+    if (isEvaluatorRole) {
+      return evaluatorStore.institutionalMetrics.cohortMeanReadiness;
+    }
+
+    const isRecruiterRole =
+      currentPersona.role === "recruiter" || currentPersona.id.includes("vikram");
+
+    if (isRecruiterRole) {
+      return 91.2;
+    }
+
+    // Student Composite Readiness Formula
+    const verifiedSkillsList = studentStore.skills.filter((s) => s.verified);
     const avgSkillScore =
       verifiedSkillsList.length > 0
         ? verifiedSkillsList.reduce((acc, s) => acc + s.score, 0) / verifiedSkillsList.length
         : 60;
 
-    const githubWeight = github.codeQualityScore;
+    const githubWeight = studentStore.github.codeQualityScore;
 
-    const verifiedCertList = certificates.filter((c) => c.status === "verified");
+    const verifiedCertList = studentStore.certificates.filter((c) => c.status === "verified");
     const avgCertScore =
       verifiedCertList.length > 0
-        ? verifiedCertList.reduce((acc, c) => acc + c.confidenceScore, 0) / verifiedCertList.length
+        ? verifiedCertList.reduce((acc, c) => acc + c.confidenceScore, 0) /
+          verifiedCertList.length
         : 75;
 
-    const completedBounties = bounties.filter((b) => b.status === "Completed");
+    const completedBounties = studentStore.bounties.filter((b) => b.status === "Completed");
     const bountyBonus = Math.min(100, completedBounties.length * 28 + 40);
 
     const aggregate = Math.round(
@@ -450,7 +799,15 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     );
 
     return Math.min(99, Math.max(10, aggregate));
-  }, [skills, github, certificates, bounties]);
+  }, [currentPersona, evaluatorStore.institutionalMetrics, studentStore]);
+
+  // Context Values scoped by Persona
+  const isEvaluatorRole =
+    currentPersona.role === "evaluator" ||
+    currentPersona.role === "institutional" ||
+    currentPersona.id.includes("sunita");
+  const isRecruiterRole =
+    currentPersona.role === "recruiter" || currentPersona.id.includes("vikram");
 
   return (
     <StudentContext.Provider
@@ -458,14 +815,27 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
         currentPersona,
         personas: DEMO_PERSONAS,
         switchPersona,
-        skills,
-        certificates,
-        github,
-        bounties,
-        lors,
-        cohortStudents,
-        verifiedBadges,
+        skills: studentStore.skills,
+        certificates: isEvaluatorRole || isRecruiterRole ? [] : studentStore.certificates,
+        github: studentStore.github,
+        bounties: isRecruiterRole ? recruiterStore.activeBountiesPosted : studentStore.bounties,
+        lors: studentStore.lors,
+        cohortStudents: isRecruiterRole
+          ? recruiterStore.talentShortlist
+          : evaluatorStore.cohortStudents,
+        verifiedBadges: isEvaluatorRole
+          ? ["Dean Verified Authority", "BOS Chair", "Institutional Gatekeeper"]
+          : isRecruiterRole
+          ? ["Verified Talent Partner", "Razorpay Tech Sponsor"]
+          : studentStore.verifiedBadges,
         readinessScore,
+        pendingAudits: evaluatorStore.pendingAudits,
+        institutionalMetrics: evaluatorStore.institutionalMetrics,
+        departmentSkillGaps: evaluatorStore.departmentSkillGaps,
+        facultyDirective: evaluatorStore.facultyDirective,
+        activeBountiesPosted: recruiterStore.activeBountiesPosted,
+        talentShortlist: recruiterStore.talentShortlist,
+        auditLogs: recruiterStore.auditLogs,
         addVerifiedSkill,
         addVerifiedCertificate,
         updateGitHubProfile,
@@ -474,6 +844,8 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
         addIssuedLOR,
         toggleLORPortfolioDisplay,
         updateCohortStudent,
+        approveAuditClaim,
+        flagAuditClaim,
         resetToDefaults,
       }}
     >
@@ -490,6 +862,5 @@ export function useStudentContext() {
   return context;
 }
 
-// Aliases to adhere strictly to instructions
 export const useStudentProfile = useStudentContext;
 export const useStudent = useStudentContext;

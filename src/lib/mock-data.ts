@@ -1,11 +1,15 @@
 import {
+  AuditEvidenceClaim,
   BountyChallenge,
   CapstoneStudent,
   CertificateRecord,
   CohortStudent,
+  DepartmentSkillGap,
   GitHubTelemetry,
+  InstitutionalMetrics,
   LetterOfRecommendation,
   PersonaProfile,
+  RecruiterAuditLog,
   SkillNode,
 } from "./types";
 
@@ -572,5 +576,110 @@ export const INTERNSHIP_LISTINGS = [
     preferredSkills: ["Go", "Zero Allocation Caching", "Low-Latency Networks"],
     description: "Tackle millisecond order execution pipelines and fault-tolerant settlement ledgers.",
     minReadinessScore: 85,
+  },
+];
+
+export const INITIAL_AUDIT_CLAIMS: AuditEvidenceClaim[] = [
+  {
+    id: "audit-01",
+    studentId: "2026-CS-041",
+    studentName: "Arjun Kumar",
+    evidenceType: "Certificate",
+    title: "AWS Certified Solutions Architect",
+    issuer: "Amazon Web Services (Credly Registry)",
+    credentialId: "AWS-7892-ARC-041",
+    score: 94,
+    confidenceScore: 89,
+    dateUploaded: "Today, 10:14 AM",
+    skills: ["AWS Cloud Architecture", "Docker", "S3"],
+    status: "pending",
+  },
+  {
+    id: "audit-02",
+    studentId: "2026-CS-055",
+    studentName: "Rohan Verma",
+    evidenceType: "Certificate",
+    title: "Coursera: Deep Learning Specialization",
+    issuer: "DeepLearning.AI",
+    credentialId: "COURSERA-98F4-A1",
+    score: 78,
+    confidenceScore: 78,
+    dateUploaded: "Yesterday, 4:30 PM",
+    skills: ["Deep Learning", "PyTorch"],
+    flagReason: "Recipient name similarity check: 84% - manual Dean inspection required",
+    status: "pending",
+  },
+  {
+    id: "audit-03",
+    studentId: "2026-CS-088",
+    studentName: "Siddharth Iyer",
+    evidenceType: "Sandbox",
+    title: "Sliding Window Rate Limiter Challenge",
+    issuer: "SkillNexus V8 Sandbox",
+    score: 96,
+    confidenceScore: 96,
+    dateUploaded: "Today, 09:22 AM",
+    skills: ["Redis", "Distributed Concurrency"],
+    status: "pending",
+  },
+  {
+    id: "audit-04",
+    studentId: "2026-CS-103",
+    studentName: "Rahul Verma",
+    evidenceType: "Bounty",
+    title: "FastAPI Async Connection Pool PR #88",
+    issuer: "GitHub Auto-Grading Engine",
+    score: 89,
+    confidenceScore: 89,
+    dateUploaded: "Yesterday, 6:15 PM",
+    skills: ["FastAPI", "Python Async"],
+    status: "pending",
+  },
+];
+
+export const INITIAL_INSTITUTIONAL_METRICS: InstitutionalMetrics = {
+  cohortSize: 142,
+  cohortMeanReadiness: 86.4,
+  lorsMinted: 28,
+  obsolescenceRiskDelta: 42,
+  placementVelocity: 91.2,
+};
+
+export const INITIAL_DEPARTMENT_SKILL_GAPS: DepartmentSkillGap[] = [
+  { pillar: "Frontend & React", score: 92, status: "Strong", color: "bg-emerald-500", textColor: "text-emerald-400" },
+  { pillar: "Backend & APIs", score: 78, status: "Adequate", color: "bg-blue-500", textColor: "text-blue-400" },
+  { pillar: "Cloud & DevOps", score: 44, status: "Critical Deficit", color: "bg-rose-500", textColor: "text-rose-400" },
+  { pillar: "Concurrency & System Design", score: 38, status: "Critical Deficit", color: "bg-rose-500", textColor: "text-rose-400" },
+  { pillar: "AI / ML & LLMs", score: 69, status: "Moderate", color: "bg-amber-500", textColor: "text-amber-400" },
+  { pillar: "Database Systems", score: 81, status: "Strong", color: "bg-emerald-500", textColor: "text-emerald-400" },
+];
+
+export const INITIAL_FACULTY_DIRECTIVE =
+  "Action: Schedule 3-day Concurrency & Redis sprint before Tier-1 placements.";
+
+export const INITIAL_RECRUITER_AUDIT_LOGS: RecruiterAuditLog[] = [
+  {
+    id: "log-01",
+    action: "Cryptographic SHA-256 LOR Verification",
+    targetCandidate: "Arjun Kumar (2026-CS-041)",
+    timestamp: "Today, 11:20 AM",
+    verificationHash: "a9f8b72e61c4d90e87b218491c3d98...",
+    status: "verified",
+  },
+  {
+    id: "log-02",
+    action: "AWS Credly Registry Identity Check",
+    targetCandidate: "Arjun Kumar (2026-CS-041)",
+    timestamp: "Today, 10:45 AM",
+    verificationHash: "c4d7e21a88b50f993f120aa76...",
+    status: "verified",
+  },
+  {
+    id: "log-03",
+    action: "Candidate Dossier Export (PDF/JSON-LD)",
+    targetCandidate: "Priya Sharma (2026-CS-012)",
+    timestamp: "Yesterday, 3:15 PM",
+    verificationHash: "f1e3c88a901bb7442ca097e1...",
+    status: "verified",
   },
 ];

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -40,7 +40,7 @@ interface NavSection {
 // 1. Dr. Sunita Rao (Evaluator / Dean of Academics / TPO)
 const EVALUATOR_SECTIONS: NavSection[] = [
   {
-    title: "INSTITUTIONAL HUB",
+    title: "INSTITUTIONAL GOVERNANCE",
     items: [
       {
         href: "/dashboard/evaluator",
@@ -55,15 +55,15 @@ const EVALUATOR_SECTIONS: NavSection[] = [
         kbd: "2",
       },
       {
-        href: "/dashboard/evaluator#audits",
-        label: "Pending Audit Queue",
+        href: "/dashboard/evaluator#audit-queue",
+        label: "Credential Audit Queue",
         icon: FileCheck2,
         kbd: "3",
       },
     ],
   },
   {
-    title: "CREDENTIAL GOVERNANCE",
+    title: "ACADEMIC INTEGRITY",
     items: [
       {
         href: "/dashboard/lor",
@@ -73,18 +73,18 @@ const EVALUATOR_SECTIONS: NavSection[] = [
       },
       {
         href: "/dashboard/certificates",
-        label: "Verify Certificates",
+        label: "Certificate Registry Forensics",
         icon: ShieldAlert,
         kbd: "5",
       },
     ],
   },
   {
-    title: "MARKET & CURRICULUM",
+    title: "CURRICULUM REFORM",
     items: [
       {
         href: "/dashboard/market",
-        label: "Curriculum Misalignment Radar",
+        label: "Market Demand vs Syllabus",
         icon: TrendingUp,
         kbd: "6",
       },
@@ -111,7 +111,7 @@ const RECRUITER_SECTIONS: NavSection[] = [
       },
       {
         href: "/bounties",
-        label: "Bounty Management",
+        label: "Bounty Board",
         icon: Briefcase,
         kbd: "2",
       },
@@ -230,6 +230,16 @@ const STUDENT_SECTIONS: NavSection[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { currentPersona } = useStudentContext();
+  const [currentHash, setCurrentHash] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setCurrentHash(window.location.hash);
+      const handleHashChange = () => setCurrentHash(window.location.hash);
+      window.addEventListener("hashchange", handleHashChange);
+      return () => window.removeEventListener("hashchange", handleHashChange);
+    }
+  }, []);
 
   const isEvaluator =
     currentPersona.role === "evaluator" ||
@@ -249,7 +259,7 @@ export function Sidebar() {
     : STUDENT_SECTIONS;
 
   const roleBadge = isEvaluator
-    ? "INSTITUTIONAL HUB"
+    ? "INSTITUTIONAL GOVERNANCE"
     : isRecruiter
     ? "RECRUITER SUITE"
     : "STUDENT PORTAL";
@@ -274,14 +284,22 @@ export function Sidebar() {
               </p>
               <div className="space-y-0.5">
                 {section.items.map((item) => {
-                  const itemPath = item.href.split("#")[0];
-                  const isActive = pathname === itemPath;
+                  const [itemPath, itemHash] = item.href.split("#");
+                  const hasHash = Boolean(itemHash);
+                  const isPathMatch = pathname === itemPath;
+                  const isActive = hasHash
+                    ? isPathMatch && currentHash === `#${itemHash}`
+                    : isPathMatch && (!currentHash || !item.href.includes("#"));
                   const Icon = item.icon;
 
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
+                      onClick={() => {
+                        if (hasHash) setCurrentHash(`#${itemHash}`);
+                        else setCurrentHash("");
+                      }}
                       className={cn(
                         "flex items-center justify-between rounded px-2 py-1.5 text-xs font-mono transition-colors group",
                         isActive

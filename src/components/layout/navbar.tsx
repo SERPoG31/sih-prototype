@@ -41,6 +41,14 @@ export function Navbar() {
 
   const currentSectionName = PATH_TITLES[pathname] || "Cockpit";
 
+  const isEvaluator =
+    currentPersona.role === "evaluator" ||
+    currentPersona.role === "institutional" ||
+    currentPersona.id.includes("sunita");
+
+  const isRecruiter =
+    currentPersona.role === "recruiter" || currentPersona.id.includes("vikram");
+
   return (
     <>
       <header className="sticky top-0 z-40 w-full border-b border-zinc-800 bg-zinc-950">
@@ -81,54 +89,140 @@ export function Navbar() {
 
           {/* Center Quick Navigation */}
           <nav className="hidden xl:flex items-center gap-1">
-            <Link
-              href="/dashboard"
-              className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
-                pathname === "/dashboard"
-                  ? "bg-zinc-900 text-zinc-100 border border-zinc-800"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
-              }`}
-            >
-              Overview
-            </Link>
-            <Link
-              href="/bounties"
-              className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
-                pathname === "/bounties"
-                  ? "bg-zinc-900 text-zinc-100 border border-zinc-800"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
-              }`}
-            >
-              Bounties
-            </Link>
-            <Link
-              href="/dashboard/market"
-              className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
-                pathname === "/dashboard/market"
-                  ? "bg-zinc-900 text-zinc-100 border border-zinc-800"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
-              }`}
-            >
-              Market Demand
-            </Link>
+            {isEvaluator ? (
+              <>
+                <Link
+                  href="/dashboard/evaluator"
+                  className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                    pathname === "/dashboard/evaluator"
+                      ? "bg-zinc-900 text-zinc-100 border border-zinc-800"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
+                  }`}
+                >
+                  Evaluator Hub
+                </Link>
+                <Link
+                  href="/dashboard/evaluator#roster"
+                  className="px-2.5 py-1 rounded text-xs font-mono text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50 transition-colors"
+                >
+                  Cohort Roster
+                </Link>
+                <Link
+                  href="/dashboard/market"
+                  className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                    pathname === "/dashboard/market"
+                      ? "bg-zinc-900 text-zinc-100 border border-zinc-800"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
+                  }`}
+                >
+                  Curriculum Radar
+                </Link>
+              </>
+            ) : isRecruiter ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                    pathname === "/dashboard"
+                      ? "bg-zinc-900 text-zinc-100 border border-zinc-800"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
+                  }`}
+                >
+                  Candidate Pipeline
+                </Link>
+                <Link
+                  href="/bounties"
+                  className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                    pathname === "/bounties"
+                      ? "bg-zinc-900 text-zinc-100 border border-zinc-800"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
+                  }`}
+                >
+                  Bounties
+                </Link>
+                <Link
+                  href="/dashboard/market"
+                  className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                    pathname === "/dashboard/market"
+                      ? "bg-zinc-900 text-zinc-100 border border-zinc-800"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
+                  }`}
+                >
+                  Market Hiring
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/dashboard"
+                  className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                    pathname === "/dashboard"
+                      ? "bg-zinc-900 text-zinc-100 border border-zinc-800"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
+                  }`}
+                >
+                  Overview
+                </Link>
+                <Link
+                  href="/bounties"
+                  className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                    pathname === "/bounties"
+                      ? "bg-zinc-900 text-zinc-100 border border-zinc-800"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
+                  }`}
+                >
+                  Bounties
+                </Link>
+                <Link
+                  href="/dashboard/market"
+                  className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                    pathname === "/dashboard/market"
+                      ? "bg-zinc-900 text-zinc-100 border border-zinc-800"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
+                  }`}
+                >
+                  Market Demand
+                </Link>
+              </>
+            )}
           </nav>
 
           {/* Right Section: Persona Switcher & Live Readiness Score */}
           <div className="flex items-center gap-2">
-            {/* Primary Accent CTA: Public Portfolio */}
-            <Link
-              href="/p/arjun-kumar"
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-xs transition-colors shadow-none"
-            >
-              <span>Portfolio</span>
-              <ExternalLink className="h-3 w-3" />
-            </Link>
+            {/* Primary Accent CTA */}
+            {isEvaluator ? (
+              <Link
+                href="/dashboard/lor"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-xs transition-colors shadow-none"
+              >
+                <span>Mint LOR</span>
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+            ) : (
+              <Link
+                href="/p/arjun-kumar"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-xs transition-colors shadow-none"
+              >
+                <span>Portfolio</span>
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+            )}
 
             {/* Live Readiness Pill with status dot */}
-            <Tooltip content="Composite Readiness: 40% Skills + 25% GitHub + 20% Certs + 15% Bounties">
+            <Tooltip
+              content={
+                isEvaluator
+                  ? "Institutional Cohort Mean: 142 Monitored Candidates (Multi-source evidence validated)"
+                  : isRecruiter
+                  ? "Talent Pipeline Benchmark: Verified Tier-1 Candidate Threshold"
+                  : "Composite Readiness: 40% Skills + 25% GitHub + 20% Certs + 15% Bounties"
+              }
+            >
               <div className="hidden sm:flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded px-2 py-1 cursor-default text-xs font-mono">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span className="text-zinc-400 text-[11px]">Ready:</span>
+                <span className="text-zinc-400 text-[11px]">
+                  {isEvaluator ? "Mean:" : isRecruiter ? "Benchmark:" : "Ready:"}
+                </span>
                 <span className="font-bold text-zinc-100">
                   {readinessScore}%
                 </span>

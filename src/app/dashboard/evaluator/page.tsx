@@ -31,79 +31,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useStudentContext } from "@/context/student-context";
-import { MarketDemandItem, CohortStudent } from "@/lib/types";
-
-interface PendingEvidenceItem {
-  id: string;
-  studentId: string;
-  studentName: string;
-  evidenceType: "Certificate" | "Sandbox" | "Bounty";
-  title: string;
-  issuer: string;
-  credentialId?: string;
-  score: number;
-  dateUploaded: string;
-  skills: string[];
-  flagReason?: string;
-  status: "pending" | "approved" | "flagged";
-}
-
-const INITIAL_AUDIT_QUEUE: PendingEvidenceItem[] = [
-  {
-    id: "audit-01",
-    studentId: "2026-CS-041",
-    studentName: "Arjun Kumar",
-    evidenceType: "Certificate",
-    title: "AWS Certified Solutions Architect",
-    issuer: "Amazon Web Services (Credly Registry)",
-    credentialId: "AWS-7892-ARC-041",
-    score: 94,
-    dateUploaded: "Today, 10:14 AM",
-    skills: ["AWS Cloud Architecture", "Docker", "S3"],
-    status: "pending",
-  },
-  {
-    id: "audit-02",
-    studentId: "2026-CS-055",
-    studentName: "Rohan Verma",
-    evidenceType: "Certificate",
-    title: "Coursera: Deep Learning Specialization",
-    issuer: "DeepLearning.AI",
-    credentialId: "COURSERA-98F4-A1",
-    score: 78,
-    dateUploaded: "Yesterday, 4:30 PM",
-    skills: ["Deep Learning", "PyTorch"],
-    flagReason: "Recipient name similarity check: 84% - manual Dean inspection required",
-    status: "pending",
-  },
-  {
-    id: "audit-03",
-    studentId: "2026-CS-088",
-    studentName: "Siddharth Iyer",
-    evidenceType: "Sandbox",
-    title: "Sliding Window Rate Limiter Challenge",
-    issuer: "SkillNexus V8 Sandbox",
-    score: 96,
-    dateUploaded: "Today, 09:22 AM",
-    skills: ["Redis", "Distributed Concurrency"],
-    status: "pending",
-  },
-  {
-    id: "audit-04",
-    studentId: "2026-CS-103",
-    studentName: "Rahul Verma",
-    evidenceType: "Bounty",
-    title: "FastAPI Async Connection Pool PR #88",
-    issuer: "GitHub Auto-Grading Engine",
-    score: 89,
-    dateUploaded: "Yesterday, 6:15 PM",
-    skills: ["FastAPI", "Python Async"],
-    status: "pending",
-  },
-];
+import { MarketDemandItem, CohortStudent, AuditEvidenceClaim } from "@/lib/types";
 
 export default function EvaluatorCockpitPage() {
-  const { cohortStudents, lors, addVerifiedSkill, updateCohortStudent } = useStudentContext();
+  const {
+    cohortStudents,
+    lors,
+    pendingAudits,
+    approveAuditClaim,
+    flagAuditClaim,
+    institutionalMetrics,
+    departmentSkillGaps,
+    facultyDirective,
+  } = useStudentContext();
 
   // Filter & Search states
   const [activeFilterTab, setActiveFilterTab] = useState<"all" | "audit" | "atRisk" | "tier1">("all");
@@ -116,8 +56,7 @@ export default function EvaluatorCockpitPage() {
   const [marketSource, setMarketSource] = useState<string>("simulated_cache");
   const [isLoadingMarket, setIsLoadingMarket] = useState(true);
 
-  // Evidence Review Queue state
-  const [auditQueue, setAuditQueue] = useState<PendingEvidenceItem[]>(INITIAL_AUDIT_QUEUE);
+  // Notification Banner
   const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "warning" } | null>(null);
 
   // Board of Studies (BOS) Report Modal
@@ -164,7 +103,6 @@ export default function EvaluatorCockpitPage() {
 
     // Filter tab condition
     if (activeFilterTab === "audit") {
-      // Students needing audit (unverified certs or sandbox pending)
       return (
         student.verificationStatus.certificatesVerified < student.verificationStatus.totalCertificates ||
         !student.verificationStatus.sandboxPassed
@@ -198,41 +136,19 @@ export default function EvaluatorCockpitPage() {
   };
 
   // Actions for Audit Queue
-  const handleApproveEvidence = (item: PendingEvidenceItem) => {
-    setAuditQueue((prev) =>
-      prev.map((i) => (i.id === item.id ? { ...i, status: "approved" } : i))
-    );
-
-    // If it's Arjun Kumar, credit skills and boost readiness in StudentContext
-    if (item.studentId === "2026-CS-041") {
-      item.skills.forEach((sk) => {
-        addVerifiedSkill(sk, item.score, "Certificate", "Cloud/DevOps");
-      });
-      updateCohortStudent("2026-CS-041", {
-        readinessScore: 96,
-        verificationStatus: {
-          certificatesVerified: 4,
-          totalCertificates: 4,
-          githubQualityScore: 94,
-          sandboxPassed: true,
-        },
-      });
-    }
-
+  const handleApproveEvidence = (item: AuditEvidenceClaim) => {
+    approveAuditClaim(item.id);
     setToastMessage({
-      text: `✓ Approved & Credited: "${item.title}" verified for ${item.studentName} (${item.studentId}). Readiness score boosted.`,
+      text: `✓ Approved & Credited: "${item.title}" verified for ${item.studentName} (${item.studentId}). Real-time readiness score boosted.`,
       type: "success",
     });
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const handleFlagEvidence = (item: PendingEvidenceItem) => {
-    setAuditQueue((prev) =>
-      prev.map((i) => (i.id === item.id ? { ...i, status: "flagged" } : i))
-    );
-
+  const handleFlagEvidence = (item: AuditEvidenceClaim) => {
+    flagAuditClaim(item.id, "Flagged: Suspected certificate splicing or registry hash mismatch");
     setToastMessage({
-      text: `⚠ Flagged for Verification: Audit flag dispatched for ${item.studentName} (${item.studentId}). Student prompted for proof re-submission.`,
+      text: `⚠ Flagged as Spliced/Plagiarized: Security audit incident recorded for ${item.studentName} (${item.studentId}). Confidence reduced to 42%.`,
       type: "warning",
     });
     setTimeout(() => setToastMessage(null), 4000);
@@ -324,13 +240,14 @@ export default function EvaluatorCockpitPage() {
         <Card className="bg-zinc-900/50 border-zinc-800 p-4 space-y-1">
           <span className="text-[10px] font-mono uppercase text-zinc-500 tracking-wider flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5 text-zinc-400" />
-            <span>Monitored Candidates</span>
+            <span>Cohort Size</span>
           </span>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono text-zinc-100">142</span>
-            <span className="text-[10px] font-mono text-emerald-400">+12% YoY</span>
+            <span className="text-xl sm:text-2xl font-bold font-mono text-zinc-100">
+              {institutionalMetrics?.cohortSize || 142} Active Engineers
+            </span>
           </div>
-          <p className="text-[10px] text-zinc-500 font-mono">Batch 2026 CS Department</p>
+          <p className="text-[10px] text-zinc-500 font-mono">B.Tech CS, Batch 2026 • +12% YoY</p>
         </Card>
 
         <Card className="bg-zinc-900/50 border-zinc-800 p-4 space-y-1">
@@ -339,7 +256,9 @@ export default function EvaluatorCockpitPage() {
             <span>Cohort Mean Readiness</span>
           </span>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono text-emerald-400">86.4%</span>
+            <span className="text-2xl font-bold font-mono text-emerald-400">
+              {institutionalMetrics?.cohortMeanReadiness || 86.4}%
+            </span>
             <span className="text-[10px] font-mono text-zinc-400">Benchmark Tier</span>
           </div>
           <p className="text-[10px] text-zinc-500 font-mono">Multi-source evidence validated</p>
@@ -347,26 +266,28 @@ export default function EvaluatorCockpitPage() {
 
         <Card className="bg-zinc-900/50 border-zinc-800 p-4 space-y-1">
           <span className="text-[10px] font-mono uppercase text-zinc-500 tracking-wider flex items-center gap-1.5">
-            <FileCheck2 className="h-3.5 w-3.5 text-zinc-400" />
-            <span>Cryptographic LORs Sealed</span>
+            <FileCheck2 className="h-3.5 w-3.5 text-emerald-400" />
+            <span>Tamper-Proof LORs Minted</span>
           </span>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono text-zinc-100">{lors.length + 27}</span>
-            <span className="text-[10px] font-mono text-emerald-400">SHA-256 PKI</span>
+            <span className="text-2xl font-bold font-mono text-zinc-100">
+              {institutionalMetrics?.lorsMinted || (lors.length > 0 ? lors.length + 27 : 28)} Official Seals
+            </span>
           </div>
-          <p className="text-[10px] text-zinc-500 font-mono">Dean & TPO Official Seal</p>
+          <p className="text-[10px] text-zinc-500 font-mono">SHA-256 PKI Cryptographic Dean Seal</p>
         </Card>
 
         <Card className="bg-zinc-900/50 border-zinc-800 p-4 space-y-1">
           <span className="text-[10px] font-mono uppercase text-zinc-500 tracking-wider flex items-center gap-1.5">
-            <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
-            <span>Placement Velocity</span>
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+            <span>Curriculum Obsolescence Risk</span>
           </span>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono text-zinc-100">91.2%</span>
-            <span className="text-[10px] font-mono text-emerald-400">Tier-1 Qualified</span>
+            <span className="text-xl sm:text-2xl font-bold font-mono text-amber-400">
+              HIGH ({institutionalMetrics?.obsolescenceRiskDelta || 42}% Delta)
+            </span>
           </div>
-          <p className="text-[10px] text-zinc-500 font-mono">Bounty & Sandbox verified</p>
+          <p className="text-[10px] text-zinc-500 font-mono">Delta vs Live Adzuna Demand</p>
         </Card>
       </div>
 
@@ -390,43 +311,46 @@ export default function EvaluatorCockpitPage() {
           </CardHeader>
           <CardContent className="pt-4 space-y-4">
             <div className="space-y-3 font-mono text-xs">
-              {departmentalPillars.map((pillar) => (
-                <div key={pillar.name} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-zinc-300 font-medium">{pillar.name}</span>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-semibold ${pillar.textColor}`}>
-                        {pillar.status}
-                      </span>
-                      <span className="text-zinc-100 font-bold">{pillar.score}%</span>
+              {(departmentSkillGaps || departmentalPillars).map((pillar) => {
+                const label = "pillar" in pillar ? pillar.pillar : (pillar as any).name;
+                return (
+                  <div key={label} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-zinc-300 font-medium">{label}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-semibold ${pillar.textColor}`}>
+                          {pillar.status}
+                        </span>
+                        <span className="text-zinc-100 font-bold">{pillar.score}%</span>
+                      </div>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden">
+                      <div
+                        className={`h-full ${pillar.color} rounded-full transition-all duration-500`}
+                        style={{ width: `${pillar.score}%` }}
+                      />
                     </div>
                   </div>
-                  <div className="h-2 w-full rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden">
-                    <div
-                      className={`h-full ${pillar.color} rounded-full transition-all duration-500`}
-                      style={{ width: `${pillar.score}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Department Action Advisory */}
             <div className="mt-4 p-3 rounded bg-zinc-950 border border-zinc-800 text-xs font-mono space-y-1">
               <div className="flex items-center gap-1.5 text-amber-400 font-bold text-[11px]">
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                <span>Curriculum Intervention Advisory:</span>
+                <span>Automated Faculty Directive:</span>
               </div>
-              <p className="text-[11px] text-zinc-400 font-sans leading-relaxed">
-                Department Recommendation: Host 3-day Concurrency &amp; Docker workshop to bridge the
-                Cloud/System Design gap prior to semester capstone reviews.
+              <p className="text-[11px] text-zinc-300 font-mono leading-relaxed">
+                {facultyDirective || "Action: Schedule 3-day Concurrency & Redis sprint before Tier-1 placements."}
               </p>
             </div>
           </CardContent>
         </Card>
 
         {/* Right Column: Pending Credential Audit & Approval Queue (7 cols) */}
-        <Card className="lg:col-span-7 bg-zinc-900/50 border-zinc-800">
+        <Card id="audit-queue" className="lg:col-span-7 bg-zinc-900/50 border-zinc-800 scroll-mt-20">
+          <div id="audits" className="hidden" />
           <CardHeader className="pb-3 border-b border-zinc-800">
             <div className="flex items-center justify-between">
               <div>
@@ -439,12 +363,12 @@ export default function EvaluatorCockpitPage() {
                 </p>
               </div>
               <Badge variant="outline" className="text-[10px] font-mono border-amber-500/30 text-amber-400 bg-amber-500/10">
-                {auditQueue.filter((i) => i.status === "pending").length} Pending
+                {pendingAudits.filter((i) => i.status === "pending").length} Pending
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="pt-4 space-y-3">
-            {auditQueue.map((item) => {
+            {pendingAudits.map((item) => {
               const isPending = item.status === "pending";
               const isApproved = item.status === "approved";
               const isFlagged = item.status === "flagged";
@@ -502,7 +426,7 @@ export default function EvaluatorCockpitPage() {
                             className="h-7 px-2 text-[11px] font-mono border-zinc-800 hover:border-amber-500/50 hover:text-amber-400 text-zinc-400"
                           >
                             <ShieldAlert className="h-3 w-3 mr-1 text-amber-400" />
-                            <span>Flag / Reject</span>
+                            <span>Flag as Spliced/Plagiarized</span>
                           </Button>
 
                           <Button
@@ -512,7 +436,7 @@ export default function EvaluatorCockpitPage() {
                             className="h-7 px-2.5 text-[11px] font-mono font-semibold bg-emerald-500 hover:bg-emerald-400 text-zinc-950"
                           >
                             <Check className="h-3 w-3 mr-1" />
-                            <span>Approve &amp; Credit</span>
+                            <span>Approve Credential</span>
                           </Button>
                         </>
                       ) : isApproved ? (
@@ -523,7 +447,7 @@ export default function EvaluatorCockpitPage() {
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/30">
                           <AlertTriangle className="h-3.5 w-3.5" />
-                          <span>Flagged for Review</span>
+                          <span>Flagged (42% Confidence)</span>
                         </span>
                       )}
                     </div>
@@ -536,7 +460,7 @@ export default function EvaluatorCockpitPage() {
       </div>
 
       {/* Cohort Roster Triage & Smart Filters */}
-      <Card className="bg-zinc-900/50 border-zinc-800">
+      <Card id="roster" className="bg-zinc-900/50 border-zinc-800 scroll-mt-20">
         <CardHeader className="border-b border-zinc-800 pb-3 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -576,7 +500,7 @@ export default function EvaluatorCockpitPage() {
             >
               <span>All Students</span>
               <span className={`text-[10px] px-1.5 py-0.2 rounded ${activeFilterTab === "all" ? "bg-zinc-300 text-zinc-900" : "bg-zinc-900 text-zinc-500"}`}>
-                142
+                {cohortStudents.length}
               </span>
             </button>
 
@@ -588,7 +512,7 @@ export default function EvaluatorCockpitPage() {
                   : "bg-zinc-950 hover:bg-zinc-800 text-zinc-400 border border-zinc-800"
               }`}
             >
-              <span>Verification Queue (Needs Audit)</span>
+              <span>Verification Queue (Needs Audit: {auditCount})</span>
               <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${activeFilterTab === "audit" ? "bg-amber-600 text-white" : "bg-amber-500/20 text-amber-400"}`}>
                 {auditCount}
               </span>
@@ -742,7 +666,7 @@ export default function EvaluatorCockpitPage() {
                               className="h-7 px-2.5 text-xs font-mono font-semibold bg-emerald-500 hover:bg-emerald-400 text-zinc-950 cursor-pointer"
                             >
                               <FileCheck2 className="h-3.5 w-3.5 mr-1" />
-                              Issue LOR
+                              Fast-Track LOR
                             </Button>
                           </Link>
                         </td>
@@ -796,7 +720,7 @@ export default function EvaluatorCockpitPage() {
       </Card>
 
       {/* Institutional Curriculum Misalignment Widget with BOS Memo Export */}
-      <Card className="bg-zinc-900/50 border-zinc-800">
+      <Card id="memo" className="bg-zinc-900/50 border-zinc-800 scroll-mt-20">
         <CardHeader className="border-b border-zinc-800 pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-0.5">
@@ -825,7 +749,7 @@ export default function EvaluatorCockpitPage() {
                 className="h-8 text-xs font-mono font-semibold bg-emerald-500 hover:bg-emerald-400 text-zinc-950 cursor-pointer"
               >
                 <Download className="h-3.5 w-3.5 mr-1" />
-                Export Board of Studies (BOS) Report
+                Generate Academic Council Syllabus Memo
               </Button>
             </div>
           </div>

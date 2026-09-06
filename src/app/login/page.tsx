@@ -41,10 +41,10 @@ export default function LoginPage() {
     switchPersona(selectedRole);
 
     let targetPath = "/dashboard";
-    if (selectedRole === "sunita-rao") {
+    if (selectedRole === "dr-sunita-rao" || selectedRole === "sunita-rao") {
       targetPath = "/dashboard/evaluator";
     } else if (selectedRole === "vikram-malhotra") {
-      targetPath = "/dashboard/lor";
+      targetPath = "/bounties";
     }
 
     setTimeout(() => {
@@ -75,6 +75,18 @@ export default function LoginPage() {
       ],
       accentBorder: "border-zinc-800 hover:border-emerald-500/60",
     },
+    "dr-sunita-rao": {
+      scopeTag: "EVALUATOR & TPO HUB",
+      redirectPath: "/dashboard/evaluator",
+      roleIcon: Building2,
+      permissions: [
+        "Monitor cohort readiness roster",
+        "Audit live curriculum misalignment radar",
+        "Grade student capstones with 5-axis rubric",
+        "Cryptographically seal SHA-256 LORs",
+      ],
+      accentBorder: "border-zinc-800 hover:border-emerald-500/60",
+    },
     "sunita-rao": {
       scopeTag: "EVALUATOR & TPO HUB",
       redirectPath: "/dashboard/evaluator",
@@ -89,7 +101,7 @@ export default function LoginPage() {
     },
     "vikram-malhotra": {
       scopeTag: "RECRUITER SUITE",
-      redirectPath: "/dashboard/lor",
+      redirectPath: "/bounties",
       roleIcon: Briefcase,
       permissions: [
         "Verify candidate tamper-proof audit trails",
