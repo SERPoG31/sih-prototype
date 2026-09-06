@@ -4,9 +4,10 @@ import React from "react";
 import { cn } from "@/lib/utils";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "outline" | "ghost" | "destructive" | "accent";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "destructive" | "accent" | "ghost-accent";
   size?: "sm" | "md" | "lg" | "icon";
   isLoading?: boolean;
+  loading?: boolean;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -17,11 +18,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       variant = "primary",
       size = "md",
       isLoading = false,
+      loading = false,
       disabled,
       ...props
     },
     ref
   ) => {
+    const isBusy = isLoading || loading;
     const baseStyles =
       "inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98]";
 
@@ -38,6 +41,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         "bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/25 focus:ring-rose-500 border border-rose-500/30",
       accent:
         "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/25 focus:ring-emerald-500 border border-emerald-500/30",
+      "ghost-accent":
+        "bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 focus:ring-indigo-500",
     };
 
     const sizes = {
@@ -50,11 +55,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
-        disabled={disabled || isLoading}
+        disabled={disabled || isBusy}
         className={cn(baseStyles, variants[variant], sizes[size], className)}
         {...props}
       >
-        {isLoading && (
+        {isBusy && (
           <svg
             className="animate-spin -ml-1 mr-2 h-4 w-4 text-current"
             fill="none"

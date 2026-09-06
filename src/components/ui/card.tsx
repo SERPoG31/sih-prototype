@@ -1,15 +1,30 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
+export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: "default" | "glass" | "bordered";
+  glow?: boolean;
+}
+
 export function Card({
   className,
+  variant = "default",
+  glow = false,
   children,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: CardProps) {
+  const variantStyles = {
+    default: "border border-slate-800/80 bg-slate-900/60 shadow-xl",
+    glass: "border border-slate-700/60 bg-slate-900/40 backdrop-blur-xl shadow-2xl",
+    bordered: "border border-slate-800 bg-transparent",
+  };
+
   return (
     <div
       className={cn(
-        "rounded-xl border border-slate-800/80 bg-slate-900/60 p-6 backdrop-blur-md shadow-xl text-slate-100",
+        "rounded-xl p-6 backdrop-blur-md text-slate-100 transition-all duration-200",
+        variantStyles[variant],
+        glow && "card-glow",
         className
       )}
       {...props}

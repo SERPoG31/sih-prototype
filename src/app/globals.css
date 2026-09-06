@@ -70,3 +70,49 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
+/* ── Entrance animation: fade + slide-up ──────────────────────────────────── */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-slide-up {
+  animation: fadeSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Stagger helpers — apply as className="animate-fade-slide-up stagger-N" */
+.stagger-1  { animation-delay: 50ms;  }
+.stagger-2  { animation-delay: 100ms; }
+.stagger-3  { animation-delay: 150ms; }
+.stagger-4  { animation-delay: 200ms; }
+.stagger-5  { animation-delay: 250ms; }
+.stagger-6  { animation-delay: 300ms; }
+.stagger-7  { animation-delay: 350ms; }
+.stagger-8  { animation-delay: 400ms; }
+
+/* ── Readiness score pulse glow (emerald) ─────────────────────────────────── */
+@keyframes readinessPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+  50%       { box-shadow: 0 0 0 6px rgba(52, 211, 153, 0.18); }
+}
+
+.readiness-pulse {
+  animation: readinessPulse 3s ease-in-out infinite;
+}
+
+/* ── Card hover glow ──────────────────────────────────────────────────────── */
+.card-glow {
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.card-glow:hover {
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.25), 0 8px 32px -8px rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
