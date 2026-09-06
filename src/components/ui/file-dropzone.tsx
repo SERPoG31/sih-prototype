@@ -73,9 +73,17 @@ export function FileDropzone({
 
   // Demo helper: simulate synthetic file for quick evaluator clicks
   const loadSyntheticDemo = (sampleName: string, issuer: string) => {
-    const blob = new Blob([`Sample credential metadata payload for ${sampleName}`], {
-      type: "application/pdf",
-    });
+    let content = `Official Credential Document - Issuer: ${issuer}\n`;
+    if (sampleName.includes("nptel")) {
+      content += `National Programme on Technology Enhanced Learning (NPTEL)\nThis is to certify that Arjun Kumar has successfully completed Design and Analysis of Algorithms\nRoll No: NPTEL24CS82S15430091\nVerify at https://nptel.ac.in/noc/Ecertificate/?q=NPTEL24CS82S15430091`;
+    } else if (sampleName.includes("aws")) {
+      content += `Amazon Web Services Training & Certification\nArjun Kumar has successfully achieved AWS Certified Solutions Architect – Associate\nBadge: https://www.credly.com/badges/3a7f8c9b-4e21-4f11-8912-1b5e3c9a2d4f`;
+    } else if (sampleName.includes("coursera")) {
+      content += `Coursera Verified Certificate\nThis certifies that Arjun Kumar has completed Generative AI with Large Language Models authorized by DeepLearning.AI\nCertificate ID: 9X8W7K2M4L\nVerify at: https://coursera.org/verify/9X8W7K2M4L`;
+    } else {
+      content += `Certificate of Cloud Architecture\nIssued to Sarah Jenkins\nAuthor: Adobe Photoshop 2024 Windows\nCertificate ID: INVALID999`;
+    }
+    const blob = new Blob([content], { type: "application/pdf" });
     const mockFile = new File([blob], `${sampleName.toLowerCase().replace(/[^a-z0-9]/g, "_")}_credential.pdf`, {
       type: "application/pdf",
     });

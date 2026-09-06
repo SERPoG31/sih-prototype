@@ -27,7 +27,12 @@ export interface CertificateRecord {
     modifyDate?: string;
     software?: string;
     compressionHistory?: string;
+    fileSizeBytes?: number;
   };
+  credentialId?: string;
+  verificationUrl?: string;
+  rawExtractedText?: string;
+  registryConfirmed?: boolean;
 }
 
 export interface GitHubTelemetry {
