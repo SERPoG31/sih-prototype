@@ -108,6 +108,40 @@ export interface BountyChallenge {
   autoScorePreview?: number;
 }
 
+export interface Bounty {
+  id: string;
+  company: string;
+  title: string;
+  description: string;
+  reward: string;
+  difficulty: "Intermediate" | "Advanced" | "Elite Architect";
+  tags: string[];
+  repoUrl: string;
+  timeLimitHours: number;
+  status: "open" | "claimed" | "submitted" | "completed";
+  claimedAt?: string;
+}
+
+export interface BountySubmissionRequest {
+  bountyId: string;
+  prUrl: string;
+  studentId: string;
+}
+
+export interface BountyGradingResult {
+  passed: boolean;
+  score: number;
+  checks: {
+    branchCoverage: number;
+    astStyleCompliance: boolean;
+    codeCleanlinessScore: number;
+    testSuitePassed: boolean;
+  };
+  readinessDelta: number;
+  feedback: string;
+  txHash: string;
+}
+
 export interface CapstoneStudent {
   id: string;
   name: string;

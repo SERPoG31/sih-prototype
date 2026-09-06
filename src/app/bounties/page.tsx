@@ -1,61 +1,106 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import {
-  Briefcase,
   Clock,
-  CheckCircle2,
   ExternalLink,
   GitPullRequest,
-  Sparkles,
   ShieldCheck,
-  AlertCircle,
-  Filter,
-  DollarSign,
+  CheckCircle2,
+  RefreshCw,
+  Search,
+  Check,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
-import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
-import { Progress } from "@/components/ui/progress";
-import { Tooltip } from "@/components/ui/tooltip";
 import { useStudentContext } from "@/context/student-context";
-import { formatINR } from "@/lib/utils";
-import { BountyChallenge } from "@/lib/types";
+import { Bounty, BountyGradingResult } from "@/lib/types";
 
 export default function BountyBoardPage() {
-  const { bounties, recordBountyScore } = useStudentContext();
+  const { currentPersona, recordBountyScore, bounties: contextBounties } = useStudentContext();
 
-  const [activeFilter, setActiveFilter] = useState<"All" | "Open" | "Completed">("All");
-  const [selectedBounty, setSelectedBounty] = useState<BountyChallenge | null>(null);
-  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
-  const [prUrl, setPrUrl] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submissionFeedback, setSubmissionFeedback] = useState<{
-    score: number;
-    critique: string;
-    coveragePct: number;
-  } | null>(null);
+  const [bounties, setBounties] = useState<Bounty[]>([]);
+  const [source, setSource] = useState<"live_github_issues" | "simulated_fallback">("simulated_fallback");
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [activeFilter, setActiveFilter] = useState<"all" | "open" | "claimed" | "completed">("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
-  const filteredBounties = bounties.filter((b) => {
-    if (activeFilter === "All") return true;
-    return b.status === activeFilter;
-  });
+  // Claim tracking: bountyId -> timestamp
+  const [claimedBounties, setClaimedBounties] = useState<Record<string, number>>({});
 
-  const handleOpenSubmit = (bounty: BountyChallenge) => {
+  // Submission modal state
+  const [selectedBounty, setSelectedBounty] = useState<Bounty | null>(null);
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState<boolean>(false);
+  const [prUrl, setPrUrl] = useState<string>("");
+  const [submissionStep, setSubmissionStep] = useState<number>(0);
+  const [isGrading, setIsGrading] = useState<boolean>(false);
+  const [gradingResult, setGradingResult] = useState<BountyGradingResult | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchBounties() {
+      try {
+        setIsLoading(true);
+        const res = await fetch("/api/bounties");
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            setSource(data.source || "simulated_fallback");
+            setBounties(data.bounties || []);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load bounties:", err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+    fetchBounties();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleClaim = (bountyId: string) => {
+    setClaimedBounties((prev) => ({
+      ...prev,
+      [bountyId]: Date.now(),
+    }));
+    setBounties((prev) =>
+      prev.map((b) => (b.id === bountyId ? { ...b, status: "claimed" } : b))
+    );
+  };
+
+  const handleOpenSubmit = (bounty: Bounty) => {
     setSelectedBounty(bounty);
-    setPrUrl(`https://github.com/${bounty.company.toLowerCase().replace(/[^a-z]/g, "")}/sandbox/pull/42`);
-    setSubmissionFeedback(null);
+    setPrUrl(`https://github.com/${bounty.company.toLowerCase().replace(/[^a-z0-9]/g, "")}/project/pull/42`);
+    setGradingResult(null);
+    setErrorMessage(null);
+    setSubmissionStep(0);
     setIsSubmitModalOpen(true);
   };
 
-  const handleRunCiAndSubmit = async () => {
+  const handleRunCiGrading = async () => {
     if (!selectedBounty) return;
-    setIsSubmitting(true);
+    setIsGrading(true);
+    setErrorMessage(null);
+    setGradingResult(null);
+
+    // Multi-step validation loader
+    setSubmissionStep(1); // Inspecting PR diff
+    await new Promise((r) => setTimeout(r, 450));
+
+    setSubmissionStep(2); // Running AST compliance
+    await new Promise((r) => setTimeout(r, 650));
+
+    setSubmissionStep(3); // Verifying SHA-256 hash
+    await new Promise((r) => setTimeout(r, 450));
 
     try {
       const res = await fetch("/api/bounties", {
@@ -63,60 +108,116 @@ export default function BountyBoardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bountyId: selectedBounty.id,
-          prUrl,
+          prUrl: prUrl.trim(),
+          studentId: currentPersona.id,
         }),
       });
+
       const data = await res.json();
-      if (data.success) {
-        setSubmissionFeedback({
-          score: data.score,
-          critique: data.automatedReviewCritique,
-          coveragePct: data.testSuiteResults.coveragePct,
-        });
 
-        // Record in student context
-        recordBountyScore(selectedBounty.id, data.score, prUrl);
-
-        try {
-          confetti({
-            particleCount: 90,
-            spread: 75,
-            origin: { y: 0.6 },
-            colors: ["#10b981", "#6366f1", "#f59e0b"],
-          });
-        } catch {
-          // ignore
-        }
+      if (!res.ok) {
+        setErrorMessage(data.error || "Validation failed. Please verify the PR link.");
+        setSubmissionStep(0);
+        return;
       }
-    } catch (err) {
-      console.error(err);
+
+      setGradingResult(data);
+      setSubmissionStep(4); // Finished
+
+      // Mark bounty as completed locally
+      setBounties((prev) =>
+        prev.map((b) => (b.id === selectedBounty.id ? { ...b, status: "completed" } : b))
+      );
+
+      // Wire into StudentContext for global readiness score & verified badge persistence
+      recordBountyScore(selectedBounty.id, data.score, prUrl, selectedBounty.tags, selectedBounty.company);
+
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["#10b981", "#71717a", "#27272a"],
+        });
+      } catch {
+        // ignore
+      }
+    } catch (err: unknown) {
+      setErrorMessage((err as Error).message || "Submission failed due to network error.");
+      setSubmissionStep(0);
     } finally {
-      setIsSubmitting(false);
+      setIsGrading(false);
     }
   };
 
+  // Merge with completed statuses from context if user completed previously
+  const resolvedBounties = bounties.map((b) => {
+    const isCompletedInContext = contextBounties.some(
+      (cb) => cb.id === b.id && cb.status === "Completed"
+    );
+    if (isCompletedInContext) return { ...b, status: "completed" as const };
+    return b;
+  });
+
+  const filteredBounties = resolvedBounties.filter((b) => {
+    if (activeFilter !== "all" && b.status !== activeFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return (
+        b.title.toLowerCase().includes(q) ||
+        b.company.toLowerCase().includes(q) ||
+        b.tags.some((t) => t.toLowerCase().includes(q))
+      );
+    }
+    return true;
+  });
+
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col">
+    <div className="min-h-screen bg-zinc-950 flex flex-col text-zinc-100 font-sans">
       <Navbar />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
-        <PageHeader
-          title="Industry Micro-Bounty Board"
-          subtitle="Real-world, 48-hour scoped production challenges published by engineering teams at Razorpay, Zerodha, PhonePe, and Hasura. Submit verified pull requests with automated test grading."
-          badgeText="Module 07"
-        />
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 lg:p-6 space-y-4">
+        {/* Header with Live Telemetry Tag */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-base sm:text-lg font-bold tracking-tight text-zinc-100">
+                Module 07 • Industry Micro-Bounty Board
+              </h1>
+              {source === "live_github_issues" ? (
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded border border-emerald-500/30 bg-zinc-900 text-emerald-400 font-mono text-[10px] font-semibold tracking-wider">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  LIVE GITHUB BOUNTY STREAM
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded border border-zinc-800 bg-zinc-900 text-zinc-400 font-mono text-[10px] font-medium tracking-wider">
+                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
+                  BENCHMARK CACHE
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              Production bug fixes & engineering challenges with cash grants and pre-placement interviews (PPI). Submit pull requests with automated test grading.
+            </p>
+          </div>
 
-        {/* Filter Bar & Metric Badges */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
-          <div className="flex items-center gap-1.5 rounded-xl bg-slate-900 border border-slate-800 p-1">
-            {(["All", "Open", "Completed"] as const).map((filter) => (
+          <div className="flex items-center gap-2 font-mono text-[10px] text-zinc-500 shrink-0">
+            <span>Sprint Limit: 48h</span>
+            <kbd className="text-[9px]">9</kbd>
+          </div>
+        </div>
+
+        {/* Filter Bar & Search */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 p-0.5 rounded text-xs font-mono">
+            {(["all", "open", "claimed", "completed"] as const).map((filter) => (
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-2.5 py-1 rounded transition-colors uppercase text-[10px] tracking-wider font-semibold ${
                   activeFilter === filter
-                    ? "bg-indigo-600 text-white shadow"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-zinc-800 text-zinc-100"
+                    : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
                 {filter}
@@ -124,225 +225,279 @@ export default function BountyBoardPage() {
             ))}
           </div>
 
-          <div className="flex items-center gap-3 text-xs font-mono text-slate-400">
-            <span>
-              Total Bounty Pool: <strong className="text-emerald-400">₹65,000 INR</strong>
-            </span>
-            <span>•</span>
-            <span>Zero Unverified Resumes Allowed</span>
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-zinc-500" />
+            <Input
+              type="text"
+              placeholder="Search stack, company, tag..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 text-xs bg-zinc-900 border-zinc-800 h-8 font-mono text-zinc-200 focus:border-zinc-700"
+            />
           </div>
         </div>
 
         {/* Bounties Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filteredBounties.map((bounty) => (
-            <Card
-              key={bounty.id}
-              className={`flex flex-col justify-between transition-all ${
-                bounty.status === "Completed"
-                  ? "border-emerald-500/40 bg-emerald-950/10"
-                  : "border-slate-800 hover:border-slate-700"
-              }`}
-            >
-              <div>
-                <CardHeader className="pb-3 border-b border-slate-800/80">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-indigo-400">{bounty.company}</span>
-                      <Badge
-                        variant={
-                          bounty.difficulty === "Expert"
-                            ? "danger"
-                            : bounty.difficulty === "Hard"
-                            ? "warning"
-                            : "default"
-                        }
-                        size="sm"
-                      >
-                        {bounty.difficulty}
-                      </Badge>
-                    </div>
+        {isLoading ? (
+          <div className="h-64 flex items-center justify-center text-xs font-mono text-zinc-500">
+            <RefreshCw className="h-4 w-4 animate-spin mr-2 text-zinc-400" />
+            Ingesting live GitHub bounty issues...
+          </div>
+        ) : filteredBounties.length === 0 ? (
+          <div className="h-48 rounded border border-zinc-800 bg-zinc-900/30 flex flex-col items-center justify-center text-xs text-zinc-500 font-mono">
+            <span>No bounties found matching filter criteria.</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {filteredBounties.map((bounty) => {
+              const isClaimed = bounty.status === "claimed" || !!claimedBounties[bounty.id];
+              const isCompleted = bounty.status === "completed";
 
-                    <div className="flex items-center gap-2">
-                      {bounty.status === "Completed" ? (
-                        <Badge variant="success" dot>
-                          Completed (PR Merged)
-                        </Badge>
-                      ) : (
-                        <div className="flex items-center gap-1 text-[11px] font-mono text-amber-400">
-                          <Clock className="h-3.5 w-3.5" />
-                          <span>{bounty.timeRemainingHours}h Left</span>
+              return (
+                <Card
+                  key={bounty.id}
+                  className={`flex flex-col justify-between transition-colors ${
+                    isCompleted
+                      ? "border-emerald-500/40 bg-zinc-900/60"
+                      : isClaimed
+                      ? "border-amber-500/40 bg-zinc-900/50"
+                      : "border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/70"
+                  }`}
+                >
+                  <div>
+                    <CardHeader className="pb-2 border-b border-zinc-800">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-zinc-200">
+                          {bounty.company}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded border border-zinc-800 bg-zinc-900 text-zinc-400">
+                            {bounty.difficulty}
+                          </span>
+                          {isCompleted ? (
+                            <Badge variant="success" size="sm" dot>
+                              Merged
+                            </Badge>
+                          ) : isClaimed ? (
+                            <Badge variant="warning" size="sm" dot>
+                              In Sprint
+                            </Badge>
+                          ) : (
+                            <span className="text-[10px] font-mono text-zinc-500 flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {bounty.timeLimitHours}h
+                            </span>
+                          )}
                         </div>
-                      )}
+                      </div>
+
+                      <CardTitle className="text-sm font-semibold text-zinc-100 pt-1 leading-snug">
+                        {bounty.title}
+                      </CardTitle>
+                    </CardHeader>
+
+                    <CardContent className="space-y-3 pt-2 text-xs">
+                      <p className="text-zinc-400 line-clamp-3 leading-relaxed">
+                        {bounty.description}
+                      </p>
+
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
+                          Tags:
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {bounty.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-zinc-900 text-zinc-400 border border-zinc-800"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </div>
+
+                  <CardFooter className="pt-2 border-t border-zinc-800 flex items-center justify-between">
+                    <div className="font-mono">
+                      <span className="text-[10px] text-zinc-500 block uppercase">Reward</span>
+                      <span className="text-xs font-bold text-emerald-400">{bounty.reward}</span>
                     </div>
-                  </div>
 
-                  <CardTitle className="text-base text-white pt-2 leading-snug">
-                    {bounty.title}
-                  </CardTitle>
-                </CardHeader>
-
-                <CardContent className="space-y-4 pt-4 text-xs">
-                  <p className="text-slate-300 leading-relaxed">{bounty.description}</p>
-
-                  <div className="space-y-1.5">
-                    <span className="font-semibold text-slate-400 text-[11px] uppercase tracking-wider">
-                      Required Stack:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {bounty.requiredSkills.map((sk) => (
-                        <Badge key={sk} variant="outline" size="sm">
-                          {sk}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1.5">
-                    <span className="text-[11px] font-bold text-slate-300">
-                      CI Automated Test Requirements:
-                    </span>
-                    <ul className="space-y-1 text-slate-400 list-disc pl-4 text-[11px]">
-                      {bounty.testChecklist.map((item, idx) => (
-                        <li key={idx}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {bounty.status === "Completed" && (
-                    <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between font-mono text-xs">
-                      <span className="text-emerald-300">
-                        Auto-Score: <strong>{bounty.autoScorePreview}%</strong>
-                      </span>
+                    <div className="flex items-center gap-1.5">
                       <a
-                        href={bounty.submittedPrUrl || "#"}
+                        href={bounty.repoUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-emerald-400 hover:underline flex items-center gap-1"
+                        className="p-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+                        title="View issue on GitHub"
                       >
-                        <span>View PR</span>
-                        <ExternalLink className="h-3 w-3" />
+                        <ExternalLink className="h-3.5 w-3.5" />
                       </a>
+
+                      {isCompleted ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-mono text-emerald-400 font-semibold px-2 py-1 bg-zinc-900 border border-emerald-500/30 rounded">
+                          <Check className="h-3 w-3" />
+                          Earned
+                        </span>
+                      ) : isClaimed ? (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleOpenSubmit(bounty)}
+                          className="font-mono text-xs gap-1"
+                        >
+                          <GitPullRequest className="h-3 w-3" />
+                          Submit PR
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleClaim(bounty.id)}
+                          className="font-mono text-xs"
+                        >
+                          Claim (48h)
+                        </Button>
+                      )}
                     </div>
-                  )}
-                </CardContent>
-              </div>
+                  </CardFooter>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </main>
 
-              <CardFooter className="flex items-center justify-between pt-4 border-t border-slate-800">
-                <Tooltip content="Direct industry grant disbursed upon automated CI assertion validation and employer PR merge">
-                  <div className="cursor-pointer">
-                    <span className="text-[10px] uppercase font-mono text-slate-400 block">
-                      Bounty Grant
-                    </span>
-                    <span className="text-lg font-bold font-mono text-emerald-400">
-                      {formatINR(bounty.rewardINR)}
-                    </span>
-                  </div>
-                </Tooltip>
+      {/* Submission & CI Auto-Grading Modal */}
+      <Modal
+        isOpen={isSubmitModalOpen}
+        onClose={() => setIsSubmitModalOpen(false)}
+        title={selectedBounty ? `CI Verification • ${selectedBounty.company}` : "Bounty Submission"}
+        description="Submit your open-source GitHub pull request URL for AST analysis and cryptographic verification."
+      >
+        <div className="space-y-4 font-mono text-zinc-100">
 
-                {bounty.status === "Completed" ? (
-                  <Badge variant="success" size="md">
-                    Verified on Ledger
-                  </Badge>
+          <div className="space-y-1.5">
+            <label className="text-[10px] uppercase text-zinc-400 tracking-wider">
+              GitHub Pull Request URL:
+            </label>
+            <Input
+              type="url"
+              placeholder="https://github.com/:owner/:repo/pull/:number"
+              value={prUrl}
+              onChange={(e) => setPrUrl(e.target.value)}
+              className="text-xs font-mono bg-zinc-950 border-zinc-800 h-9"
+              disabled={isGrading}
+            />
+          </div>
+
+          {/* Validation Pipeline Steps Indicator */}
+          {submissionStep > 0 && (
+            <div className="space-y-2 p-3 rounded border border-zinc-800 bg-zinc-950/80 text-xs">
+              <div className="flex items-center gap-2">
+                {submissionStep > 1 ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                 ) : (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => handleOpenSubmit(bounty)}
-                  >
-                    <GitPullRequest className="h-3.5 w-3.5 mr-1.5" />
-                    Submit Pull Request
-                  </Button>
+                  <RefreshCw className="h-3.5 w-3.5 text-zinc-400 animate-spin shrink-0" />
                 )}
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-
-        {/* PR Submission Modal */}
-        <Modal
-          isOpen={isSubmitModalOpen}
-          onClose={() => setIsSubmitModalOpen(false)}
-          title={`Submit PR: ${selectedBounty?.title}`}
-          description={`Submit your open pull request link for ${selectedBounty?.company}. The automated CI harness will build your branch, verify test assertions, and calculate your score preview.`}
-          maxWidth="lg"
-        >
-          {submissionFeedback ? (
-            <div className="space-y-4 pt-2">
-              <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-500/40 space-y-2">
-                <div className="flex items-center gap-2 text-emerald-400">
-                  <CheckCircle2 className="h-5 w-5 shrink-0" />
-                  <h4 className="font-bold text-sm">CI/CD Automated Test Suite Succeeded!</h4>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  {submissionFeedback.critique}
-                </p>
-                <div className="space-y-2 pt-2 text-xs font-mono">
-                  <div className="space-y-1">
-                    <div className="flex justify-between">
-                      <span className="text-emerald-300">Auto-Score Preview</span>
-                      <strong className="text-emerald-400">{submissionFeedback.score}%</strong>
-                    </div>
-                    <Progress value={submissionFeedback.score} className="h-1.5" indicatorClassName="bg-emerald-500" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Branch Test Coverage</span>
-                      <strong className="text-slate-200">{submissionFeedback.coveragePct}%</strong>
-                    </div>
-                    <Progress value={submissionFeedback.coveragePct} className="h-1.5" indicatorClassName="bg-indigo-500" />
-                  </div>
-                </div>
+                <span className={submissionStep === 1 ? "text-zinc-100 font-semibold" : "text-zinc-500"}>
+                  1. Inspecting PR diff and branch tree...
+                </span>
               </div>
 
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs font-mono text-indigo-400">
-                <ShieldCheck className="h-4 w-4 shrink-0" />
-                <span>Credited to Skill Radar & Public Portfolio</span>
+              <div className="flex items-center gap-2">
+                {submissionStep > 2 ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                ) : submissionStep === 2 ? (
+                  <RefreshCw className="h-3.5 w-3.5 text-zinc-400 animate-spin shrink-0" />
+                ) : (
+                  <span className="h-3.5 w-3.5 rounded-full border border-zinc-800 shrink-0" />
+                )}
+                <span className={submissionStep === 2 ? "text-zinc-100 font-semibold" : "text-zinc-500"}>
+                  2. Running AST compliance and coverage matrix...
+                </span>
               </div>
 
-              <div className="flex justify-end pt-2">
-                <Button variant="primary" onClick={() => setIsSubmitModalOpen(false)}>
-                  Done
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4 pt-2">
-              <Input
-                label="GitHub Pull Request URL"
-                value={prUrl}
-                onChange={(e) => setPrUrl(e.target.value)}
-                placeholder="https://github.com/company/sandbox/pull/123"
-              />
-
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400 space-y-1">
-                <p className="font-semibold text-slate-200">Pre-flight checklist:</p>
-                <p>• Clean git history without merge conflict artifacts</p>
-                <p>• All benchmark unit tests passing locally</p>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setIsSubmitModalOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="accent"
-                  size="sm"
-                  onClick={handleRunCiAndSubmit}
-                  isLoading={isSubmitting}
-                >
-                  <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                  Run CI & Verify PR
-                </Button>
+              <div className="flex items-center gap-2">
+                {submissionStep > 3 ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                ) : submissionStep === 3 ? (
+                  <RefreshCw className="h-3.5 w-3.5 text-zinc-400 animate-spin shrink-0" />
+                ) : (
+                  <span className="h-3.5 w-3.5 rounded-full border border-zinc-800 shrink-0" />
+                )}
+                <span className={submissionStep === 3 ? "text-zinc-100 font-semibold" : "text-zinc-500"}>
+                  3. Verifying cryptographic SHA-256 receipt...
+                </span>
               </div>
             </div>
           )}
-        </Modal>
-      </main>
+
+          {errorMessage && (
+            <div className="p-2.5 rounded border border-red-500/30 bg-red-500/10 text-red-400 text-xs">
+              {errorMessage}
+            </div>
+          )}
+
+          {/* Grading Passed Result Box */}
+          {gradingResult && (
+            <div className="p-3 rounded border border-emerald-500/30 bg-zinc-950 space-y-2 text-xs">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-1.5">
+                <span className="font-bold text-emerald-400 flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4" />
+                  VERIFIED GRADE: {gradingResult.score}%
+                </span>
+                <span className="text-[10px] text-zinc-400">+15% Readiness Factor</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-[10px]">
+                <div className="border border-zinc-800 p-1.5 rounded">
+                  <span className="text-zinc-500 block">Branch Coverage</span>
+                  <span className="font-bold text-zinc-200">
+                    {gradingResult.checks.branchCoverage}%
+                  </span>
+                </div>
+                <div className="border border-zinc-800 p-1.5 rounded">
+                  <span className="text-zinc-500 block">Cleanliness Score</span>
+                  <span className="font-bold text-zinc-200">
+                    {gradingResult.checks.codeCleanlinessScore}/100
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[9px] text-zinc-500 block uppercase">SHA-256 Receipt</span>
+                <span className="text-[8px] text-zinc-400 break-all font-mono">
+                  {gradingResult.txHash}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsSubmitModalOpen(false)}
+              disabled={isGrading}
+            >
+              {gradingResult ? "Done" : "Cancel"}
+            </Button>
+            {!gradingResult && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleRunCiGrading}
+                isLoading={isGrading}
+              >
+                Run CI Auto-Grading
+              </Button>
+            )}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

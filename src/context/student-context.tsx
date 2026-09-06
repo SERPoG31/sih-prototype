@@ -38,7 +38,13 @@ interface StudentContextType {
   ) => void;
   addVerifiedCertificate: (cert: CertificateRecord) => void;
   updateGitHubProfile: (telemetry: Partial<GitHubTelemetry>) => void;
-  recordBountyScore: (bountyId: string, score: number, prUrl: string) => void;
+  recordBountyScore: (
+    bountyId: string,
+    score: number,
+    prUrl: string,
+    tags?: string[],
+    company?: string
+  ) => void;
   awardBadge: (badgeName: string) => void;
   addIssuedLOR: (lor: LetterOfRecommendation) => void;
   resetToDefaults: () => void;
@@ -180,30 +186,55 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const recordBountyScore = (bountyId: string, score: number, prUrl: string) => {
+  const recordBountyScore = (
+    bountyId: string,
+    score: number,
+    prUrl: string,
+    tags: string[] = ["TypeScript", "Next.js"],
+    company: string = "Industry Partner"
+  ) => {
     setBounties((prev) => {
-      const updated = prev.map((b) => {
-        if (b.id === bountyId) {
-          return {
-            ...b,
-            status: "Completed" as const,
-            submittedPrUrl: prUrl,
-            autoScorePreview: score,
-          };
-        }
-        return b;
-      });
+      const exists = prev.some((b) => b.id === bountyId);
+      let updated: BountyChallenge[];
+      if (exists) {
+        updated = prev.map((b) => {
+          if (b.id === bountyId) {
+            return {
+              ...b,
+              status: "Completed" as const,
+              submittedPrUrl: prUrl,
+              autoScorePreview: score,
+            };
+          }
+          return b;
+        });
+      } else {
+        const newChallenge: BountyChallenge = {
+          id: bountyId,
+          title: `Bounty: ${bountyId}`,
+          company,
+          rewardINR: 50000,
+          timeRemainingHours: 0,
+          difficulty: "Hard",
+          requiredSkills: tags,
+          description: "Completed industry bounty challenge verified via GitHub PR.",
+          prSubmissionCount: 1,
+          testChecklist: ["CI Test Suite Passed", "AST Compliance", "Zero Memory Leak"],
+          status: "Completed",
+          submittedPrUrl: prUrl,
+          autoScorePreview: score,
+        };
+        updated = [newChallenge, ...prev];
+      }
       persistState("skillnexus_bounties", updated);
       return updated;
     });
 
-    const targetBounty = bounties.find((b) => b.id === bountyId);
-    if (targetBounty) {
-      targetBounty.requiredSkills.forEach((skill) => {
-        addVerifiedSkill(skill, score, "Bounty");
-      });
-      awardBadge(`Bounty Victor: ${targetBounty.company} (${score}%)`);
-    }
+    const skillsToAward = tags && tags.length > 0 ? tags : ["Full-Stack Architecture", "TypeScript"];
+    skillsToAward.forEach((skill) => {
+      addVerifiedSkill(skill, score, "Bounty");
+    });
+    awardBadge(`Bounty Victor: ${company} (${score}%)`);
   };
 
   const addIssuedLOR = (lor: LetterOfRecommendation) => {
