@@ -271,6 +271,7 @@ export type PersonaType = "student" | "recruiter" | "faculty";
 export interface PersonaProfile {
   id: string;
   type: PersonaType;
+  role?: "student" | "evaluator" | "recruiter" | "institutional";
   name: string;
   title: string;
   organization: string;

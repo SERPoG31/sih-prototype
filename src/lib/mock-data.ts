@@ -13,6 +13,7 @@ export const DEMO_PERSONAS: PersonaProfile[] = [
   {
     id: "arjun-kumar",
     type: "student",
+    role: "student",
     name: "Arjun Kumar",
     title: "Pre-Final Year CSE Student",
     organization: "IIT Madras",
@@ -21,6 +22,7 @@ export const DEMO_PERSONAS: PersonaProfile[] = [
   {
     id: "dr-sunita-rao",
     type: "faculty",
+    role: "evaluator",
     name: "Dr. Sunita Rao",
     title: "Dean of Academic Affairs & TPO",
     organization: "IIT Madras CSE Dept",
@@ -29,6 +31,7 @@ export const DEMO_PERSONAS: PersonaProfile[] = [
   {
     id: "vikram-malhotra",
     type: "recruiter",
+    role: "recruiter",
     name: "Vikram Malhotra",
     title: "Lead Technical Talent Partner",
     organization: "Razorpay / Cred Labs",

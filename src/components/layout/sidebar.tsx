@@ -14,15 +14,131 @@ import {
   FileCheck2,
   TrendingUp,
   Share2,
-  Building2,
   LogOut,
+  FileKey2,
+  ShieldAlert,
+  FileText,
 } from "lucide-react";
 import { Github } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { useStudentContext } from "@/context/student-context";
 import { UserAvatar } from "@/components/ui/avatar";
 
-const NAV_SECTIONS = [
+interface NavItem {
+  href: string;
+  label: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  icon: React.ComponentType<any>;
+  kbd?: string;
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+// 1. Dr. Sunita Rao (Evaluator / Dean of Academics / TPO)
+const EVALUATOR_SECTIONS: NavSection[] = [
+  {
+    title: "INSTITUTIONAL HUB",
+    items: [
+      {
+        href: "/dashboard/evaluator",
+        label: "Evaluator Cockpit",
+        icon: LayoutDashboard,
+        kbd: "1",
+      },
+      {
+        href: "/dashboard/evaluator#roster",
+        label: "Cohort Roster & Triage",
+        icon: Users,
+        kbd: "2",
+      },
+      {
+        href: "/dashboard/evaluator#audits",
+        label: "Pending Audit Queue",
+        icon: FileCheck2,
+        kbd: "3",
+      },
+    ],
+  },
+  {
+    title: "CREDENTIAL GOVERNANCE",
+    items: [
+      {
+        href: "/dashboard/lor",
+        label: "Mint Cryptographic LOR",
+        icon: FileKey2,
+        kbd: "4",
+      },
+      {
+        href: "/dashboard/certificates",
+        label: "Verify Certificates",
+        icon: ShieldAlert,
+        kbd: "5",
+      },
+    ],
+  },
+  {
+    title: "MARKET & CURRICULUM",
+    items: [
+      {
+        href: "/dashboard/market",
+        label: "Curriculum Misalignment Radar",
+        icon: TrendingUp,
+        kbd: "6",
+      },
+      {
+        href: "/dashboard/evaluator#memo",
+        label: "Academic Council Memo",
+        icon: FileText,
+        kbd: "7",
+      },
+    ],
+  },
+];
+
+// 2. Vikram Malhotra (Recruiter / Industry Talent Partner)
+const RECRUITER_SECTIONS: NavSection[] = [
+  {
+    title: "TALENT INTELLIGENCE",
+    items: [
+      {
+        href: "/dashboard",
+        label: "Candidate Pipeline",
+        icon: Users,
+        kbd: "1",
+      },
+      {
+        href: "/bounties",
+        label: "Bounty Management",
+        icon: Briefcase,
+        kbd: "2",
+      },
+      {
+        href: "/dashboard/lor",
+        label: "Cryptographic Verifier",
+        icon: FileCheck2,
+        kbd: "3",
+      },
+      {
+        href: "/dashboard/market",
+        label: "Market Hiring Trends",
+        icon: TrendingUp,
+        kbd: "4",
+      },
+      {
+        href: "/p/arjun-kumar",
+        label: "Public Talent Showcase",
+        icon: Share2,
+        kbd: "5",
+      },
+    ],
+  },
+];
+
+// 3. Arjun Kumar (Student / Candidate) — Complete curriculum, NO Institutional link!
+const STUDENT_SECTIONS: NavSection[] = [
   {
     title: "OVERVIEW",
     items: [
@@ -109,42 +225,59 @@ const NAV_SECTIONS = [
       },
     ],
   },
-  {
-    title: "INSTITUTIONAL",
-    items: [
-      {
-        href: "/dashboard/evaluator",
-        label: "Evaluator Hub",
-        icon: Building2,
-        kbd: "E",
-      },
-    ],
-  },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { currentPersona } = useStudentContext();
 
+  const isEvaluator =
+    currentPersona.role === "evaluator" ||
+    currentPersona.role === "institutional" ||
+    currentPersona.type === "faculty" ||
+    currentPersona.id.includes("sunita");
+
+  const isRecruiter =
+    currentPersona.role === "recruiter" ||
+    currentPersona.type === "recruiter" ||
+    currentPersona.id.includes("vikram");
+
+  const navSections = isEvaluator
+    ? EVALUATOR_SECTIONS
+    : isRecruiter
+    ? RECRUITER_SECTIONS
+    : STUDENT_SECTIONS;
+
+  const roleBadge = isEvaluator
+    ? "INSTITUTIONAL HUB"
+    : isRecruiter
+    ? "RECRUITER SUITE"
+    : "STUDENT PORTAL";
+
   return (
     <aside className="w-56 shrink-0 border-r border-zinc-800 bg-zinc-950 p-3 hidden md:flex flex-col justify-between select-none">
       <div className="space-y-4 overflow-y-auto">
-        <div className="px-2 pt-1 pb-1">
+        <div className="px-2 pt-1 pb-1 flex items-center justify-between">
           <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-semibold">
-            System Modules
+            Navigation
           </p>
+          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-zinc-900 border border-zinc-800 text-emerald-400 font-semibold">
+            {roleBadge}
+          </span>
         </div>
 
         <div className="space-y-3">
-          {NAV_SECTIONS.map((section) => (
+          {navSections.map((section) => (
             <div key={section.title} className="space-y-0.5">
               <p className="px-2 py-0.5 text-[9px] font-mono uppercase tracking-wider text-zinc-600 font-bold">
                 {section.title}
               </p>
               <div className="space-y-0.5">
                 {section.items.map((item) => {
-                  const isActive = pathname === item.href;
+                  const itemPath = item.href.split("#")[0];
+                  const isActive = pathname === itemPath;
                   const Icon = item.icon;
+
                   return (
                     <Link
                       key={item.href}
@@ -182,9 +315,16 @@ export function Sidebar() {
       {/* User profile footer */}
       <div className="pt-2 border-t border-zinc-800 mt-3 space-y-1.5">
         <div className="flex items-center gap-2 p-1.5 rounded bg-zinc-900/40 border border-zinc-800">
-          <UserAvatar src={currentPersona.avatar} name={currentPersona.name} size="sm" className="h-6 w-6 border-zinc-700" />
+          <UserAvatar
+            src={currentPersona.avatar}
+            name={currentPersona.name}
+            size="sm"
+            className="h-6 w-6 border-zinc-700"
+          />
           <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-xs font-medium text-zinc-200 truncate">{currentPersona.name}</span>
+            <span className="text-xs font-medium text-zinc-200 truncate">
+              {currentPersona.name}
+            </span>
             <span className="text-[10px] text-zinc-500 truncate">{currentPersona.title}</span>
           </div>
         </div>

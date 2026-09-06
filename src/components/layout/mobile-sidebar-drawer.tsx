@@ -14,10 +14,12 @@ import {
   FileCheck2,
   TrendingUp,
   Share2,
-  Building2,
   X,
   Terminal,
   LogOut,
+  FileKey2,
+  ShieldAlert,
+  FileText,
 } from "lucide-react";
 import { Github } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
@@ -29,7 +31,121 @@ interface MobileSidebarDrawerProps {
   onClose: () => void;
 }
 
-const NAV_SECTIONS = [
+interface NavItem {
+  href: string;
+  label: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  icon: React.ComponentType<any>;
+  kbd?: string;
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+// 1. Dr. Sunita Rao (Evaluator / Dean of Academics / TPO)
+const EVALUATOR_SECTIONS: NavSection[] = [
+  {
+    title: "INSTITUTIONAL HUB",
+    items: [
+      {
+        href: "/dashboard/evaluator",
+        label: "Evaluator Cockpit",
+        icon: LayoutDashboard,
+        kbd: "1",
+      },
+      {
+        href: "/dashboard/evaluator#roster",
+        label: "Cohort Roster & Triage",
+        icon: Users,
+        kbd: "2",
+      },
+      {
+        href: "/dashboard/evaluator#audits",
+        label: "Pending Audit Queue",
+        icon: FileCheck2,
+        kbd: "3",
+      },
+    ],
+  },
+  {
+    title: "CREDENTIAL GOVERNANCE",
+    items: [
+      {
+        href: "/dashboard/lor",
+        label: "Mint Cryptographic LOR",
+        icon: FileKey2,
+        kbd: "4",
+      },
+      {
+        href: "/dashboard/certificates",
+        label: "Verify Certificates",
+        icon: ShieldAlert,
+        kbd: "5",
+      },
+    ],
+  },
+  {
+    title: "MARKET & CURRICULUM",
+    items: [
+      {
+        href: "/dashboard/market",
+        label: "Curriculum Misalignment Radar",
+        icon: TrendingUp,
+        kbd: "6",
+      },
+      {
+        href: "/dashboard/evaluator#memo",
+        label: "Academic Council Memo",
+        icon: FileText,
+        kbd: "7",
+      },
+    ],
+  },
+];
+
+// 2. Vikram Malhotra (Recruiter / Industry Talent Partner)
+const RECRUITER_SECTIONS: NavSection[] = [
+  {
+    title: "TALENT INTELLIGENCE",
+    items: [
+      {
+        href: "/dashboard",
+        label: "Candidate Pipeline",
+        icon: Users,
+        kbd: "1",
+      },
+      {
+        href: "/bounties",
+        label: "Bounty Management",
+        icon: Briefcase,
+        kbd: "2",
+      },
+      {
+        href: "/dashboard/lor",
+        label: "Cryptographic Verifier",
+        icon: FileCheck2,
+        kbd: "3",
+      },
+      {
+        href: "/dashboard/market",
+        label: "Market Hiring Trends",
+        icon: TrendingUp,
+        kbd: "4",
+      },
+      {
+        href: "/p/arjun-kumar",
+        label: "Public Talent Showcase",
+        icon: Share2,
+        kbd: "5",
+      },
+    ],
+  },
+];
+
+// 3. Arjun Kumar (Student / Candidate) — Complete curriculum, NO Institutional link!
+const STUDENT_SECTIONS: NavSection[] = [
   {
     title: "OVERVIEW",
     items: [
@@ -116,22 +232,34 @@ const NAV_SECTIONS = [
       },
     ],
   },
-  {
-    title: "INSTITUTIONAL",
-    items: [
-      {
-        href: "/dashboard/evaluator",
-        label: "Evaluator Hub",
-        icon: Building2,
-        kbd: "E",
-      },
-    ],
-  },
 ];
 
 export function MobileSidebarDrawer({ isOpen, onClose }: MobileSidebarDrawerProps) {
   const pathname = usePathname();
   const { currentPersona } = useStudentContext();
+
+  const isEvaluator =
+    currentPersona.role === "evaluator" ||
+    currentPersona.role === "institutional" ||
+    currentPersona.type === "faculty" ||
+    currentPersona.id.includes("sunita");
+
+  const isRecruiter =
+    currentPersona.role === "recruiter" ||
+    currentPersona.type === "recruiter" ||
+    currentPersona.id.includes("vikram");
+
+  const navSections = isEvaluator
+    ? EVALUATOR_SECTIONS
+    : isRecruiter
+    ? RECRUITER_SECTIONS
+    : STUDENT_SECTIONS;
+
+  const roleBadge = isEvaluator
+    ? "INSTITUTIONAL HUB"
+    : isRecruiter
+    ? "RECRUITER SUITE"
+    : "STUDENT PORTAL";
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -141,10 +269,10 @@ export function MobileSidebarDrawer({ isOpen, onClose }: MobileSidebarDrawerProp
       document.body.style.overflow = "hidden";
       window.addEventListener("keydown", handleKeyDown);
     } else {
-      document.body.style.overflow = "";
+      document.body.style.overflow = "unset";
     }
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = "unset";
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onClose]);
@@ -155,44 +283,53 @@ export function MobileSidebarDrawer({ isOpen, onClose }: MobileSidebarDrawerProp
     <div className="fixed inset-0 z-50 md:hidden flex">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/80 transition-opacity"
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Drawer panel */}
-      <div className="relative w-64 max-w-[80vw] h-full bg-zinc-950 border-r border-zinc-800 p-3 flex flex-col justify-between shadow-none z-10">
+      {/* Drawer content */}
+      <div className="relative flex flex-col w-64 max-w-[80vw] bg-zinc-950 border-r border-zinc-800 p-4 z-10 shadow-2xl h-full justify-between">
         <div className="space-y-4 overflow-y-auto">
           {/* Header */}
-          <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
+          <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
             <div className="flex items-center gap-2">
               <div className="flex h-6 w-6 items-center justify-center rounded border border-zinc-700 bg-zinc-900 text-zinc-200">
-                <Terminal className="h-3.5 w-3.5" />
+                <Terminal className="h-3.5 w-3.5 text-zinc-300" />
               </div>
-              <span className="font-bold text-zinc-100 text-sm">
-                SkillNexus
-              </span>
+              <span className="font-bold tracking-tight text-zinc-100 text-sm">SkillNexus</span>
             </div>
             <button
               onClick={onClose}
               className="p-1 rounded text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 transition-colors"
-              aria-label="Close menu"
+              aria-label="Close drawer"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          {/* Navigation Groups */}
-          <nav className="space-y-3">
-            {NAV_SECTIONS.map((section) => (
-              <div key={section.title} className="space-y-0.5">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-semibold">
+              Navigation
+            </span>
+            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-zinc-900 border border-zinc-800 text-emerald-400 font-semibold">
+              {roleBadge}
+            </span>
+          </div>
+
+          {/* Nav Sections */}
+          <nav className="space-y-4">
+            {navSections.map((section) => (
+              <div key={section.title} className="space-y-1">
                 <p className="px-2 text-[9px] font-mono uppercase tracking-wider text-zinc-600 font-bold">
                   {section.title}
                 </p>
                 <div className="space-y-0.5">
                   {section.items.map((item) => {
-                    const isActive = pathname === item.href;
+                    const itemPath = item.href.split("#")[0];
+                    const isActive = pathname === itemPath;
                     const Icon = item.icon;
+
                     return (
                       <Link
                         key={item.href}
@@ -226,9 +363,16 @@ export function MobileSidebarDrawer({ isOpen, onClose }: MobileSidebarDrawerProp
         {/* User profile footer */}
         <div className="pt-2 border-t border-zinc-800 mt-2 space-y-1.5">
           <div className="flex items-center gap-2 p-1.5 rounded bg-zinc-900/40 border border-zinc-800">
-            <UserAvatar src={currentPersona.avatar} name={currentPersona.name} size="sm" className="h-6 w-6 border-zinc-700" />
+            <UserAvatar
+              src={currentPersona.avatar}
+              name={currentPersona.name}
+              size="sm"
+              className="h-6 w-6 border-zinc-700"
+            />
             <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-xs font-medium text-zinc-200 truncate">{currentPersona.name}</span>
+              <span className="text-xs font-medium text-zinc-200 truncate">
+                {currentPersona.name}
+              </span>
               <span className="text-[10px] text-zinc-500 truncate">{currentPersona.title}</span>
             </div>
           </div>
