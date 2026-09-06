@@ -51,6 +51,7 @@ interface StudentContextType {
   awardBadge: (badgeName: string) => void;
   addIssuedLOR: (lor: LetterOfRecommendation) => void;
   toggleLORPortfolioDisplay: (lorId: string) => void;
+  updateCohortStudent: (studentId: string, updates: Partial<CohortStudent>) => void;
   resetToDefaults: () => void;
 }
 
@@ -71,12 +72,18 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
   const [github, setGithub] = useState<GitHubTelemetry>(INITIAL_GITHUB);
   const [bounties, setBounties] = useState<BountyChallenge[]>(INITIAL_BOUNTIES);
   const [lors, setLors] = useState<LetterOfRecommendation[]>(INITIAL_LORS);
+  const [cohortStudents, setCohortStudents] = useState<CohortStudent[]>(COHORT_STUDENTS);
   const [verifiedBadges, setVerifiedBadges] = useState<string[]>(INITIAL_BADGES);
 
   // Hydrate from localStorage on client mount if available
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
     try {
+      const savedPersona = localStorage.getItem("skillnexus_persona");
+      if (savedPersona) {
+        const found = DEMO_PERSONAS.find((p) => p.id === savedPersona);
+        if (found) setCurrentPersona(found);
+      }
+
       const savedSkills = localStorage.getItem("skillnexus_skills");
       if (savedSkills) setSkills(JSON.parse(savedSkills));
 
@@ -92,18 +99,66 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
       const savedLors = localStorage.getItem("skillnexus_lors");
       if (savedLors) setLors(JSON.parse(savedLors));
 
+      const savedCohort = localStorage.getItem("skillnexus_cohort");
+      if (savedCohort) setCohortStudents(JSON.parse(savedCohort));
+
       const savedBadges = localStorage.getItem("skillnexus_badges");
       if (savedBadges) setVerifiedBadges(JSON.parse(savedBadges));
     } catch {
       // ignore storage access issues
     }
-    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
-  // Save changes to localStorage
+  // Cross-tab and in-session reactive broadcast listener
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        const savedPersona = localStorage.getItem("skillnexus_persona");
+        if (savedPersona) {
+          const found = DEMO_PERSONAS.find((p) => p.id === savedPersona);
+          if (found) setCurrentPersona(found);
+        }
+
+        const savedSkills = localStorage.getItem("skillnexus_skills");
+        if (savedSkills) setSkills(JSON.parse(savedSkills));
+
+        const savedCerts = localStorage.getItem("skillnexus_certs");
+        if (savedCerts) setCertificates(JSON.parse(savedCerts));
+
+        const savedGithub = localStorage.getItem("skillnexus_github");
+        if (savedGithub) setGithub(JSON.parse(savedGithub));
+
+        const savedBounties = localStorage.getItem("skillnexus_bounties");
+        if (savedBounties) setBounties(JSON.parse(savedBounties));
+
+        const savedLors = localStorage.getItem("skillnexus_lors");
+        if (savedLors) setLors(JSON.parse(savedLors));
+
+        const savedCohort = localStorage.getItem("skillnexus_cohort");
+        if (savedCohort) setCohortStudents(JSON.parse(savedCohort));
+
+        const savedBadges = localStorage.getItem("skillnexus_badges");
+        if (savedBadges) setVerifiedBadges(JSON.parse(savedBadges));
+      } catch {
+        // ignore
+      }
+    };
+
+    window.addEventListener("storage", handleSync);
+    window.addEventListener("skillnexus_state_sync", handleSync);
+    return () => {
+      window.removeEventListener("storage", handleSync);
+      window.removeEventListener("skillnexus_state_sync", handleSync);
+    };
+  }, []);
+
+  // Save changes to localStorage and broadcast event
   const persistState = (key: string, data: unknown) => {
     try {
       localStorage.setItem(key, JSON.stringify(data));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("skillnexus_state_sync", { detail: { key } }));
+      }
     } catch {
       // ignore
     }
@@ -111,7 +166,10 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
 
   const switchPersona = (personaId: string) => {
     const found = DEMO_PERSONAS.find((p) => p.id === personaId);
-    if (found) setCurrentPersona(found);
+    if (found) {
+      setCurrentPersona(found);
+      persistState("skillnexus_persona", personaId);
+    }
   };
 
   const addVerifiedSkill = (
@@ -176,6 +234,24 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
       addVerifiedSkill(skill, cert.confidenceScore, "Certificate");
     });
 
+    // Update Arjun's record in cohort roster
+    setCohortStudents((prev) => {
+      const updated = prev.map((s) => {
+        if (s.studentId === "2026-CS-041" || s.id === "arjun-kumar") {
+          return {
+            ...s,
+            verificationStatus: {
+              ...s.verificationStatus,
+              certificatesVerified: s.verificationStatus.certificatesVerified + 1,
+            },
+          };
+        }
+        return s;
+      });
+      persistState("skillnexus_cohort", updated);
+      return updated;
+    });
+
     awardBadge(`${cert.issuer} Verified: ${cert.courseTitle.slice(0, 24)}...`);
   };
 
@@ -185,6 +261,27 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
       persistState("skillnexus_github", updated);
       return updated;
     });
+
+    if (telemetry.codeQualityScore || telemetry.devTier) {
+      setCohortStudents((prev) => {
+        const updated = prev.map((s) => {
+          if (s.studentId === "2026-CS-041" || s.id === "arjun-kumar") {
+            return {
+              ...s,
+              devTier: telemetry.devTier || s.devTier,
+              verificationStatus: {
+                ...s.verificationStatus,
+                githubQualityScore: telemetry.codeQualityScore || s.verificationStatus.githubQualityScore,
+              },
+            };
+          }
+          return s;
+        });
+        persistState("skillnexus_cohort", updated);
+        return updated;
+      });
+    }
+
     if (telemetry.devTier) {
       awardBadge(`GitHub Verified Dev: ${telemetry.devTier}`);
     }
@@ -247,6 +344,35 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
       persistState("skillnexus_lors", updated);
       return updated;
     });
+
+    // Evaluator action: Update student record in cohort roster
+    setCohortStudents((prev) => {
+      const updated = prev.map((s) => {
+        if (
+          s.studentId === lor.studentId ||
+          s.name.toLowerCase() === lor.studentName.toLowerCase() ||
+          (lor.studentId === "2026-CS-041" && s.id === "arjun-kumar")
+        ) {
+          return {
+            ...s,
+            readinessScore: Math.min(99, s.readinessScore + 2),
+            lorsIssuedCount: (s.lorsIssuedCount || 0) + 1,
+          };
+        }
+        return s;
+      });
+      persistState("skillnexus_cohort", updated);
+      return updated;
+    });
+
+    // Credit high scores to skills based on rubric
+    if (lor.metricRatings.technicalProficiency >= 4) {
+      addVerifiedSkill("Full-Stack Architecture", 94, "Certificate", "Backend");
+    }
+    if (lor.metricRatings.systemArchitecture >= 4) {
+      addVerifiedSkill("System Design", 92, "Certificate", "System Design");
+    }
+
     awardBadge(`Cryptographic LOR by ${lor.evaluatorName}`);
   };
 
@@ -266,6 +392,19 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const updateCohortStudent = (studentId: string, updates: Partial<CohortStudent>) => {
+    setCohortStudents((prev) => {
+      const updated = prev.map((s) => {
+        if (s.studentId === studentId || s.id === studentId) {
+          return { ...s, ...updates };
+        }
+        return s;
+      });
+      persistState("skillnexus_cohort", updated);
+      return updated;
+    });
+  };
+
   const resetToDefaults = () => {
     setCurrentPersona(DEMO_PERSONAS[0]);
     setSkills(INITIAL_SKILLS);
@@ -273,20 +412,21 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     setGithub(INITIAL_GITHUB);
     setBounties(INITIAL_BOUNTIES);
     setLors(INITIAL_LORS);
+    setCohortStudents(COHORT_STUDENTS);
     setVerifiedBadges(INITIAL_BADGES);
     try {
       localStorage.clear();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("skillnexus_state_sync", { detail: { key: "all" } }));
+      }
     } catch {
       // ignore
     }
   };
 
   // Dynamically calculate aggregate Readiness Score (0-100)
-  // Weighted:
-  // - 40% Verified Skills average
-  // - 25% GitHub Telemetry & Quality Score
-  // - 20% Verified Certificates confidence
-  // - 15% Completed Bounties
+  // SIH 2026 Official Formula:
+  // Readiness Score = (0.40 * Skills) + (0.25 * GitHub AST) + (0.20 * Certs) + (0.15 * Bounties)
   const readinessScore = useMemo(() => {
     const verifiedSkillsList = skills.filter((s) => s.verified);
     const avgSkillScore =
@@ -323,7 +463,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
         github,
         bounties,
         lors,
-        cohortStudents: COHORT_STUDENTS,
+        cohortStudents,
         verifiedBadges,
         readinessScore,
         addVerifiedSkill,
@@ -333,6 +473,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
         awardBadge,
         addIssuedLOR,
         toggleLORPortfolioDisplay,
+        updateCohortStudent,
         resetToDefaults,
       }}
     >

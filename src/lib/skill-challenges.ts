@@ -2,132 +2,162 @@ import { Challenge } from "./types";
 
 export const SKILL_CHALLENGES: Challenge[] = [
   {
-    id: "challenge-ts-01",
-    title: "Fix Race Condition in Async Debounce Hook",
-    skill: "TypeScript & React",
+    id: "challenge-sliding-rate-limiter",
+    title: "Sliding Window Rate Limiter",
+    skill: "System Design & Concurrency",
+    category: "System Design",
     difficulty: "Medium",
     timeLimitSeconds: 180,
+    functionName: "checkRateLimit",
+    badgeName: "Redis Rate Limiting - Verified via Sandbox",
     instructions:
-      "The custom hook below has a memory leak and race condition when unmounted during a pending timeout. Add proper cleanup in useEffect and use a ref or cleanup function to cancel the pending timer.",
-    starterCode: `// Fix the unmount leak in this custom hook
-import { useState, useEffect } from 'react';
-
-export function useDebounce<T>(value: T, delayMs: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delayMs);
-
-    // BUG: Missing cleanup function!
-    // TODO: return a cleanup function that cancels the timeout
-    
-  }, [value, delayMs]);
-
-  return debouncedValue;
+      "Implement a sliding window rate limiter in memory. Given an array of historical request timestamps (in ms), a max request limit, a window duration (in ms), and the current request timestamp, return true if the current request is allowed, or false if it exceeds the limit. Only count previous timestamps strictly within [currentTimestamp - windowMs, currentTimestamp].",
+    starterCode: `/**
+ * Sliding Window Rate Limiter
+ * @param {number[]} timestamps - Historical request timestamps (ms)
+ * @param {number} maxLimit - Max allowed requests per window
+ * @param {number} windowMs - Window duration in milliseconds
+ * @param {number} currentTimestamp - Incoming request timestamp (ms)
+ * @returns {boolean} - true if allowed, false if rejected
+ */
+function checkRateLimit(timestamps, maxLimit, windowMs, currentTimestamp) {
+  const windowStart = currentTimestamp - windowMs;
+  
+  // Filter historical timestamps that fall strictly within the current sliding window
+  const activeRequests = timestamps.filter(t => t >= windowStart && t <= currentTimestamp);
+  
+  // Check if adding the incoming request exceeds maxLimit
+  return activeRequests.length < maxLimit;
 }`,
     testCases: [
       {
-        inputDescription: "Cleanup timer on unmount",
-        expectedKeywordPatterns: ["clearTimeout", "return () =>", "handler"],
-        hint: "Return an arrow function inside useEffect that calls clearTimeout(handler)",
+        inputDescription: "Filter active requests by windowStart",
+        expectedKeywordPatterns: ["filter", "windowStart", "<="],
+        hint: "Calculate windowStart = currentTimestamp - windowMs and filter valid timestamps.",
       },
     ],
-    badgeName: "React Hook Concurrency Pro",
+    executableTestCases: [
+      {
+        name: "Test 1: Normal traffic within sliding window limit",
+        args: [[1000, 2000, 3000], 5, 10000, 4000],
+        expected: true,
+      },
+      {
+        name: "Test 2: Burst excess traffic exceeding threshold",
+        args: [[1000, 2000, 3000, 4000, 5000], 5, 10000, 6000],
+        expected: false,
+      },
+      {
+        name: "Test 3: Window expiration reset (Edge case)",
+        args: [[1000, 2000, 3000, 4000, 5000], 5, 5000, 7500],
+        expected: true,
+      },
+    ],
   },
   {
-    id: "challenge-backend-02",
-    title: "Implement Idempotent Cache Key Generator",
-    skill: "Node.js & FastAPI",
+    id: "challenge-array-dedupe-order",
+    title: "Array Deduplication with Order Preservation",
+    skill: "TypeScript & Data Structures",
+    category: "Backend",
+    difficulty: "Easy",
+    timeLimitSeconds: 180,
+    functionName: "dedupePreserveOrder",
+    badgeName: "O(N) Set Deduplication - Verified via Sandbox",
+    instructions:
+      "Deduplicate an array in O(N) linear time while strictly preserving the first-seen insertion order of all elements. Handle mixed strings, numbers, and boundary types without quadratic nested loops.",
+    starterCode: `/**
+ * Deduplicate array while preserving insertion order
+ * @param {Array<string|number>} items
+ * @returns {Array<string|number>}
+ */
+function dedupePreserveOrder(items) {
+  const seen = new Set();
+  const result = [];
+  
+  for (const item of items) {
+    if (!seen.has(item)) {
+      seen.add(item);
+      result.push(item);
+    }
+  }
+  
+  return result;
+}`,
+    testCases: [
+      {
+        inputDescription: "Use Set for O(N) lookup and preserve order",
+        expectedKeywordPatterns: ["Set", "has", "add"],
+        hint: "Use new Set() to track seen keys and push to an accumulator array.",
+      },
+    ],
+    executableTestCases: [
+      {
+        name: "Test 1: Deduplicate numeric sequence preserving order",
+        args: [[3, 1, 3, 2, 1, 4, 2]],
+        expected: [3, 1, 2, 4],
+      },
+      {
+        name: "Test 2: Deduplicate string array with duplicate occurrences",
+        args: [["alpha", "beta", "alpha", "gamma", "beta"]],
+        expected: ["alpha", "beta", "gamma"],
+      },
+      {
+        name: "Test 3: Preserve distinct zero and string '0' representations",
+        args: [[0, "0", false, 0, "0"]],
+        expected: [0, "0", false],
+      },
+    ],
+  },
+  {
+    id: "challenge-cache-key-builder",
+    title: "Deterministic API Cache Key Builder",
+    skill: "Backend Architecture",
+    category: "Backend",
     difficulty: "Medium",
     timeLimitSeconds: 180,
+    functionName: "buildDeterministicCacheKey",
+    badgeName: "Idempotent Cache Architecture - Verified via Sandbox",
     instructions:
-      "Ensure query params are sorted deterministically so identical queries with different param orders (e.g. ?b=2&a=1 vs ?a=1&b=2) produce the exact same cache hash.",
-    starterCode: `// Complete the deterministic cache key generator
-export function buildDeterministicCacheKey(endpoint: string, params: Record<string, string | number>): string {
-  // Sort the keys alphabetically to avoid key divergence
-  const sortedKeys = Object.keys(params).sort();
+      "Construct a canonical cache key by sorting query parameters alphabetically. Ensure identical query objects with different key insertion orders produce the identical normalized string formatted as 'endpoint?k1=v1&k2=v2'. If params is empty, return just the endpoint.",
+    starterCode: `/**
+ * Build deterministic sorted cache key
+ * @param {string} endpoint - Base URL or path
+ * @param {Record<string, string|number>} params - Query parameters
+ * @returns {string} - Normalized cache key
+ */
+function buildDeterministicCacheKey(endpoint, params) {
+  const keys = Object.keys(params).sort();
+  if (keys.length === 0) return endpoint;
   
-  // Construct query string: key1=val1&key2=val2
-  const serialized = sortedKeys
-    .map(key => \`\${key}=\${params[key]}\`)
+  const queryString = keys
+    .map(k => \`\${k}=\${params[k]}\`)
     .join('&');
-
-  // Return the normalized key format: [METHOD/PATH]?[PARAMS]
-  return \`\${endpoint}?\${serialized}\`;
+    
+  return \`\${endpoint}?\${queryString}\`;
 }`,
     testCases: [
       {
         inputDescription: "Sort keys alphabetically and serialize with join",
         expectedKeywordPatterns: ["sort", "map", "join"],
-        hint: "Make sure you use sort(), map(), and join('&')",
+        hint: "Sort Object.keys(params) and join with '&'.",
       },
     ],
-    badgeName: "Idempotent API Specialist",
-  },
-  {
-    id: "challenge-db-03",
-    title: "SQL Index Optimization Query",
-    skill: "PostgreSQL & Redis",
-    difficulty: "Hard",
-    timeLimitSeconds: 180,
-    instructions:
-      "Write a query to fetch the top 5 highest spending verified users without causing a full table scan. Use an index-friendly compound WHERE and ORDER BY clause.",
-    starterCode: `-- Optimize query to leverage idx_users_status_spending
--- Columns: user_id, status ('VERIFIED', 'PENDING'), total_spent_cents, created_at
-SELECT user_id, total_spent_cents
-FROM user_transactions
-WHERE status = 'VERIFIED'
-ORDER BY total_spent_cents DESC
-LIMIT 5;`,
-    testCases: [
+    executableTestCases: [
       {
-        inputDescription: "Correct index filter and ordering",
-        expectedKeywordPatterns: ["SELECT", "WHERE status = 'VERIFIED'", "ORDER BY total_spent_cents DESC", "LIMIT 5"],
-        hint: "Ensure exact filter match on 'VERIFIED' with descending order and limit 5",
+        name: "Test 1: Unordered market query parameters sorted deterministically",
+        args: ["/api/market", { city: "Bengaluru", stack: "Rust", page: 1 }],
+        expected: "/api/market?city=Bengaluru&page=1&stack=Rust",
       },
-    ],
-    badgeName: "PostgreSQL Query Optimizer",
-  },
-  {
-    id: "challenge-docker-04",
-    title: "Multi-Stage Dockerfile Size Reducer",
-    skill: "Docker & Kubernetes",
-    difficulty: "Medium",
-    timeLimitSeconds: 180,
-    instructions:
-      "Complete the production stage of this multi-stage Docker build to copy standalone Next.js artifacts and run as a non-root user (node).",
-    starterCode: `# Build stage
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-# Runner stage
-FROM node:20-alpine AS runner
-WORKDIR /app
-ENV NODE_ENV=production
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# COPY artifacts from builder
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-EXPOSE 3000
-CMD ["node", "server.js"]`,
-    testCases: [
       {
-        inputDescription: "Multi-stage builder artifact copy with chown and USER directive",
-        expectedKeywordPatterns: ["COPY --from=builder", "USER nextjs", "CMD [\"node\", \"server.js\"]"],
-        hint: "Ensure COPY --from=builder, USER nextjs, and CMD node server.js are specified",
+        name: "Test 2: Permuted keys produce identical normalized hash string",
+        args: ["/api/v1/jobs", { z: 9, a: 1, m: 5 }],
+        expected: "/api/v1/jobs?a=1&m=5&z=9",
+      },
+      {
+        name: "Test 3: Empty query parameter dictionary returns endpoint without trailing ?",
+        args: ["/api/health", {}],
+        expected: "/api/health",
       },
     ],
-    badgeName: "Container Security & Efficiency Pro",
   },
 ];

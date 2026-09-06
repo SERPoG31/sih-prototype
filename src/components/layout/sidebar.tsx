@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Share2,
   Building2,
+  LogOut,
 } from "lucide-react";
 import { Github } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
@@ -179,7 +180,7 @@ export function Sidebar() {
       </div>
 
       {/* User profile footer */}
-      <div className="pt-2 border-t border-zinc-800 mt-3 space-y-2">
+      <div className="pt-2 border-t border-zinc-800 mt-3 space-y-1.5">
         <div className="flex items-center gap-2 p-1.5 rounded bg-zinc-900/40 border border-zinc-800">
           <UserAvatar src={currentPersona.avatar} name={currentPersona.name} size="sm" className="h-6 w-6 border-zinc-700" />
           <div className="flex flex-col min-w-0 flex-1">
@@ -187,6 +188,13 @@ export function Sidebar() {
             <span className="text-[10px] text-zinc-500 truncate">{currentPersona.title}</span>
           </div>
         </div>
+        <Link
+          href="/login"
+          className="flex items-center justify-between px-2 py-1.5 rounded text-[11px] font-mono text-zinc-400 hover:text-emerald-400 hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-colors"
+        >
+          <span className="truncate">Switch Persona / Login</span>
+          <LogOut className="h-3 w-3 shrink-0" />
+        </Link>
       </div>
     </aside>
   );

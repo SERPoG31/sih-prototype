@@ -205,6 +205,16 @@ export function Navbar() {
                       );
                     })}
                   </div>
+
+                  <div className="mt-1 pt-1.5 border-t border-zinc-800/80 px-1">
+                    <Link
+                      href="/login"
+                      className="w-full flex items-center justify-between px-2 py-1.5 rounded text-[11px] font-mono text-zinc-400 hover:text-emerald-400 hover:bg-zinc-900 transition-colors"
+                    >
+                      <span>Switch Persona Portal</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>

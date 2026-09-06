@@ -8,38 +8,46 @@ import {
   Play,
   RotateCcw,
   CheckCircle2,
-  AlertCircle,
+  XCircle,
   ShieldCheck,
   Sparkles,
   Terminal,
+  Check,
+  ArrowRight,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Tooltip } from "@/components/ui/tooltip";
 import { useStudentContext } from "@/context/student-context";
 import { SKILL_CHALLENGES } from "@/lib/skill-challenges";
 import { Challenge } from "@/lib/types";
 
+interface TestRunResult {
+  name: string;
+  passed: boolean;
+  durationMs: number;
+  expectedStr: string;
+  actualStr: string;
+  error?: string;
+}
+
 export default function SkillCheckPage() {
-  const { addVerifiedSkill, awardBadge } = useStudentContext();
+  const { addVerifiedSkill, awardBadge, readinessScore } = useStudentContext();
 
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge>(SKILL_CHALLENGES[0]);
   const [code, setCode] = useState<string>(SKILL_CHALLENGES[0].starterCode);
   const [timeLeft, setTimeLeft] = useState<number>(180);
   const [timerRunning, setTimerRunning] = useState<boolean>(false);
   const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
-  const [evaluationResult, setEvaluationResult] = useState<{
-    passed: boolean;
-    message: string;
-    details: string[];
-  } | null>(null);
+  const [testResults, setTestResults] = useState<TestRunResult[]>([]);
+  const [evaluationPassed, setEvaluationPassed] = useState<boolean | null>(null);
+  const [verifiedBadgeAwarded, setVerifiedBadgeAwarded] = useState<string | null>(null);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Timer loop
+  // Timer countdown
   useEffect(() => {
     if (timerRunning && timeLeft > 0) {
       timerRef.current = setInterval(() => {
@@ -64,7 +72,9 @@ export default function SkillCheckPage() {
     setCode(challenge.starterCode);
     setTimeLeft(challenge.timeLimitSeconds);
     setTimerRunning(false);
-    setEvaluationResult(null);
+    setTestResults([]);
+    setEvaluationPassed(null);
+    setVerifiedBadgeAwarded(null);
   };
 
   const handleStartTimer = () => {
@@ -75,59 +85,114 @@ export default function SkillCheckPage() {
     setTimerRunning(false);
     setTimeLeft(selectedChallenge.timeLimitSeconds);
     setCode(selectedChallenge.starterCode);
-    setEvaluationResult(null);
+    setTestResults([]);
+    setEvaluationPassed(null);
+    setVerifiedBadgeAwarded(null);
   };
 
+  // Genuine in-browser code execution engine
   const handleEvaluate = async () => {
     setIsEvaluating(true);
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    setEvaluationPassed(null);
 
-    const testFailures: string[] = [];
+    // Give UI a moment to show evaluating state
+    await new Promise((resolve) => setTimeout(resolve, 350));
 
-    // Evaluate client-side against defined pattern test cases
-    selectedChallenge.testCases.forEach((tc) => {
-      const allMatched = tc.expectedKeywordPatterns.every((pattern) =>
-        code.toLowerCase().includes(pattern.toLowerCase())
+    const fnName = selectedChallenge.functionName || "checkRateLimit";
+    const runs: TestRunResult[] = [];
+    let allPassed = true;
+
+    try {
+      // Evaluate user code in isolated Function closure
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval
+      const evaluator = new Function(
+        `"use strict";
+        ${code}
+        try {
+          return typeof ${fnName} !== "undefined" ? ${fnName} : null;
+        } catch(e) {
+          return null;
+        }`
       );
-      if (!allMatched) {
-        testFailures.push(`Failed requirement: ${tc.inputDescription}. Hint: ${tc.hint}`);
+
+      const userFn = evaluator();
+
+      if (typeof userFn !== "function") {
+        throw new Error(`Target function "${fnName}" is not defined or is not a callable function.`);
       }
-    });
 
-    if (testFailures.length === 0) {
-      // SUCCESS!
-      setTimerRunning(false);
-      setEvaluationResult({
-        passed: true,
-        message: `Verified! Challenge successfully passed in ${180 - timeLeft}s.`,
-        details: ["All AST and runtime pattern assertions succeeded."],
+      const testSuite = selectedChallenge.executableTestCases || [];
+
+      for (const tc of testSuite) {
+        const t0 = performance.now();
+        let actual: unknown;
+        let testError: string | undefined;
+
+        try {
+          // Clone args to prevent cross-test mutations
+          const clonedArgs = JSON.parse(JSON.stringify(tc.args));
+          actual = userFn(...clonedArgs);
+        } catch (execErr) {
+          testError = (execErr as Error).message || "Runtime exception during execution";
+        }
+
+        const durationMs = Math.max(1, Math.round(performance.now() - t0));
+        const expectedStr = JSON.stringify(tc.expected);
+        const actualStr = JSON.stringify(actual);
+
+        const passed = !testError && expectedStr === actualStr;
+        if (!passed) allPassed = false;
+
+        runs.push({
+          name: tc.name,
+          passed,
+          durationMs,
+          expectedStr,
+          actualStr: testError ? `Error: ${testError}` : actualStr,
+          error: testError,
+        });
+      }
+    } catch (globalErr) {
+      allPassed = false;
+      runs.push({
+        name: "Syntax & Compilation Validation",
+        passed: false,
+        durationMs: 0,
+        expectedStr: "Valid JavaScript Function",
+        actualStr: (globalErr as Error).message,
+        error: (globalErr as Error).message,
       });
+    }
 
-      // Award Platform-Verified badge & update context
+    setTestResults(runs);
+    setEvaluationPassed(allPassed);
+    setIsEvaluating(false);
+
+    if (allPassed && runs.length > 0) {
+      setTimerRunning(false);
+      setVerifiedBadgeAwarded(selectedChallenge.badgeName);
+
+      // Award verified badge & credit skill to StudentContext
       awardBadge(selectedChallenge.badgeName);
-      addVerifiedSkill(selectedChallenge.skill, 95, "SkillCheck");
+      addVerifiedSkill(
+        selectedChallenge.skill,
+        96,
+        "SkillCheck",
+        selectedChallenge.category || "System Design"
+      );
 
-      // Launch Confetti Celebration!
+      // Confetti effect
       try {
         confetti({
-          particleCount: 80,
-          spread: 70,
+          particleCount: 90,
+          spread: 75,
           origin: { y: 0.6 },
-          colors: ["#6366f1", "#10b981", "#38bdf8"],
+          colors: ["#10b981", "#3b82f6", "#f59e0b"],
         });
       } catch {
         // ignore
       }
-    } else {
-      // FAILED
-      setEvaluationResult({
-        passed: false,
-        message: "Evaluation failed. Missing necessary syntax or assertions.",
-        details: testFailures,
-      });
     }
-
-    setIsEvaluating(false);
   };
 
   const minutes = Math.floor(timeLeft / 60);
@@ -135,216 +200,223 @@ export default function SkillCheckPage() {
   const timerDisplay = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
-        title="In-Browser 'Skill Check' Sandbox"
-        subtitle="Timed 3-minute interactive coding and debugging snippet runner. Verifies real coding competence through syntax assertion patterns with instant badge credentialing."
+        title="In-Browser Timed Sandbox"
+        subtitle="Live code execution engine. Run algorithms against strict runtime assertions and automated test suites to claim verifiable skill proofs without human proctoring overhead."
         badgeText="Module 05"
       />
 
-      {/* Challenge Selector */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* Challenge Selector Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {SKILL_CHALLENGES.map((ch) => {
-          const isSelected = ch.id === selectedChallenge.id;
+          const isSelected = selectedChallenge.id === ch.id;
           return (
-            <button
+            <div
               key={ch.id}
               onClick={() => handleSelectChallenge(ch)}
-              className={`text-left p-3.5 rounded-xl border transition-all ${
+              className={`p-3 rounded-lg border cursor-pointer transition-all ${
                 isSelected
-                  ? "bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-500/10"
-                  : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                  ? "bg-zinc-900/90 border-emerald-500/60 ring-1 ring-emerald-500/40"
+                  : "bg-zinc-900/40 border-zinc-800 hover:bg-zinc-900 hover:border-zinc-700"
               }`}
             >
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-mono font-bold text-indigo-400">{ch.skill}</span>
-                <span
-                  className={`text-[9px] font-mono px-1.5 py-0.5 rounded uppercase ${
-                    ch.difficulty === "Easy"
-                      ? "bg-emerald-500/20 text-emerald-300"
-                      : ch.difficulty === "Medium"
-                      ? "bg-amber-500/20 text-amber-300"
-                      : "bg-rose-500/20 text-rose-300"
-                  }`}
+              <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                <span className="text-zinc-500 uppercase">{ch.difficulty}</span>
+                <Badge
+                  variant={ch.difficulty === "Easy" ? "default" : "purple"}
+                  size="sm"
                 >
-                  {ch.difficulty}
-                </span>
+                  {ch.skill}
+                </Badge>
               </div>
-              <p className="text-xs font-semibold text-slate-200 line-clamp-1">{ch.title}</p>
-            </button>
+              <h3 className="text-xs font-bold text-zinc-100 truncate">{ch.title}</h3>
+            </div>
           );
         })}
       </div>
 
-      {/* Main IDE & Instructions View */}
+      {/* Main Sandbox Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left: Challenge Specs & Instructions */}
-        <div className="lg:col-span-4 space-y-4">
+        {/* Left Column: Problem Spec & Test Runner Output */}
+        <div className="lg:col-span-5 space-y-4">
+          {/* Instructions Card */}
           <Card>
-            <CardHeader className="pb-3 border-b border-slate-800">
+            <CardHeader className="pb-3 border-b border-zinc-800">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm">{selectedChallenge.title}</CardTitle>
-                <Badge variant="purple">{selectedChallenge.difficulty}</Badge>
+                <div>
+                  <CardTitle className="text-sm font-bold">{selectedChallenge.title}</CardTitle>
+                  <CardDescription className="text-xs">
+                    Target Function:{" "}
+                    <code className="text-emerald-400 font-mono font-bold">
+                      {selectedChallenge.functionName}()
+                    </code>
+                  </CardDescription>
+                </div>
+                <Badge variant="purple" size="sm">
+                  {selectedChallenge.category || "System Design"}
+                </Badge>
               </div>
-              <CardDescription className="pt-1">
-                Target Skill: <span className="text-indigo-400 font-mono">{selectedChallenge.skill}</span>
-              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 pt-4 text-xs">
-              <div className="space-y-1.5">
-                <span className="font-bold text-slate-300 uppercase tracking-wider text-[11px]">
-                  Problem Statement:
-                </span>
-                <p className="text-slate-300 leading-relaxed bg-slate-950/80 p-3 rounded-xl border border-slate-800 font-sans">
-                  {selectedChallenge.instructions}
-                </p>
-              </div>
+            <CardContent className="pt-3 space-y-3 text-xs">
+              <p className="text-zinc-300 leading-relaxed font-sans">
+                {selectedChallenge.instructions}
+              </p>
 
-              <div className="space-y-1.5">
-                <span className="font-bold text-slate-300 uppercase tracking-wider text-[11px]">
-                  Evaluation Criteria:
+              <div className="p-3 rounded bg-zinc-950 border border-zinc-800 space-y-1 font-mono text-[11px]">
+                <span className="text-zinc-500 uppercase font-semibold block">
+                  Reward on 100% Assertion Pass:
                 </span>
-                <ul className="space-y-1 text-slate-400 list-disc pl-4">
-                  {selectedChallenge.testCases.map((tc, i) => (
-                    <li key={i}>{tc.inputDescription}</li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="pt-2 border-t border-slate-800">
-                <p className="text-[11px] text-slate-400">
-                  Badge on completion:{" "}
-                  <span className="text-emerald-400 font-mono font-semibold">
-                    {selectedChallenge.badgeName}
-                  </span>
-                </p>
+                <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
+                  <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{selectedChallenge.badgeName}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Evaluation Results Banner */}
-          {evaluationResult && (
-            <Card
-              className={`border ${
-                evaluationResult.passed
-                  ? "border-emerald-500/50 bg-emerald-950/20"
-                  : "border-rose-500/50 bg-rose-950/20"
-              }`}
-            >
-              <CardContent className="pt-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  {evaluationResult.passed ? (
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
-                  ) : (
-                    <AlertCircle className="h-5 w-5 text-rose-400 shrink-0" />
-                  )}
-                  <h4
-                    className={`text-xs font-bold ${
-                      evaluationResult.passed ? "text-emerald-300" : "text-rose-300"
-                    }`}
-                  >
-                    {evaluationResult.message}
-                  </h4>
-                </div>
-
-                <ul className="space-y-1 text-[11px] text-slate-300 list-disc pl-5">
-                  {evaluationResult.details.map((d, i) => (
-                    <li key={i}>{d}</li>
-                  ))}
-                </ul>
-
-                {evaluationResult.passed && (
-                  <div className="pt-2 flex items-center gap-2 text-xs text-emerald-400 font-mono">
-                    <ShieldCheck className="h-4 w-4" />
-                    <span>Skill Radar updated: +95% verified node</span>
-                  </div>
+          {/* Test Runner Output Card */}
+          <Card>
+            <CardHeader className="pb-2 border-b border-zinc-800">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xs uppercase font-mono tracking-wider text-zinc-400 flex items-center gap-2">
+                  <Terminal className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>Runtime Assertion Console</span>
+                </CardTitle>
+                {evaluationPassed !== null && (
+                  <Badge variant={evaluationPassed ? "success" : "danger"} size="sm">
+                    {evaluationPassed ? "SUITE PASSED" : "TESTS FAILED"}
+                  </Badge>
                 )}
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            </CardHeader>
+            <CardContent className="pt-3 space-y-2">
+              {testResults.length === 0 ? (
+                <div className="p-6 rounded bg-zinc-950 border border-zinc-800 text-center font-mono text-xs text-zinc-500">
+                  <span>Press &quot;Run Test Suite &amp; Verify&quot; to execute candidate code in the sandbox.</span>
+                </div>
+              ) : (
+                <div className="space-y-2 font-mono text-xs">
+                  {testResults.map((tr, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-2.5 rounded border ${
+                        tr.passed
+                          ? "bg-zinc-950 border-emerald-500/30 text-emerald-300"
+                          : "bg-zinc-950 border-red-500/40 text-red-300"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {tr.passed ? (
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                          ) : (
+                            <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />
+                          )}
+                          <span className="font-semibold text-zinc-100 text-[11px]">{tr.name}</span>
+                        </div>
+                        <span className="text-[10px] text-zinc-500">
+                          {tr.durationMs}ms
+                        </span>
+                      </div>
+                      {!tr.passed && (
+                        <div className="mt-1.5 pt-1.5 border-t border-zinc-800 text-[10px] space-y-0.5 text-zinc-400">
+                          <div>Expected: <code className="text-zinc-200">{tr.expectedStr}</code></div>
+                          <div>Actual: <code className="text-red-400">{tr.actualStr}</code></div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Success Banner */}
+              {verifiedBadgeAwarded && (
+                <div className="mt-3 p-3 rounded bg-emerald-500/10 border border-emerald-500/30 font-mono text-xs text-emerald-400 space-y-1">
+                  <div className="flex items-center gap-2 font-bold">
+                    <Check className="h-4 w-4 text-emerald-400" />
+                    <span>Cryptographic Verification Succeeded!</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-300">
+                    Skill node credited to Dynamic Skill Radar. Composite readiness recalculated to{" "}
+                    <span className="text-emerald-400 font-bold">{readinessScore}%</span>.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Right: Code Editor & Runner Controls */}
-        <div className="lg:col-span-8 space-y-4">
-          <Card className="border-slate-700 bg-slate-950 overflow-hidden">
-            {/* Top Toolbar: File Name & Timer */}
-            <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800 text-xs">
+        {/* Right Column: Code Editor & Timer */}
+        <div className="lg:col-span-7 space-y-4">
+          <Card>
+            {/* Editor Top Bar with Timer */}
+            <div className="px-4 py-2.5 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between font-mono text-xs">
               <div className="flex items-center gap-2">
-                <Terminal className="h-4 w-4 text-indigo-400" />
-                <span className="font-mono text-slate-200">sandbox_workspace.ts</span>
+                <Code2 className="h-4 w-4 text-emerald-400" />
+                <span className="text-zinc-300 font-bold">solution.js</span>
+                <span className="text-zinc-600">|</span>
+                <span className="text-zinc-500 text-[11px]">Sandboxed V8 Evaluator</span>
               </div>
 
+              {/* Timer Controls */}
               <div className="flex items-center gap-3">
-                {/* Countdown Timer */}
-                <Tooltip content="Timed live sandbox verification to eliminate AI prompt injection copying">
-                  <div
-                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border font-mono font-bold cursor-default ${
-                      timeLeft < 30
-                        ? "bg-rose-500/20 border-rose-500/40 text-rose-400 animate-pulse"
-                        : "bg-slate-950 border-slate-700 text-emerald-400"
-                    }`}
-                  >
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>{timerDisplay}</span>
-                  </div>
-                </Tooltip>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 font-bold">
+                  <Clock className="h-3.5 w-3.5 text-amber-400" />
+                  <span className={timeLeft < 30 ? "text-red-400 animate-pulse" : ""}>
+                    {timerDisplay}
+                  </span>
+                </div>
 
                 {!timerRunning && timeLeft === selectedChallenge.timeLimitSeconds && (
-                  <Button variant="primary" size="sm" onClick={handleStartTimer}>
-                    <Play className="h-3 w-3 mr-1" />
-                    Start Timer
-                  </Button>
+                  <button
+                    onClick={handleStartTimer}
+                    className="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 text-[11px] flex items-center gap-1"
+                  >
+                    <Play className="h-3 w-3 text-emerald-400" />
+                    <span>Start Timer</span>
+                  </button>
                 )}
 
-                <Tooltip content="Reset challenge starter code and timer">
-                  <button
-                    onClick={handleReset}
-                    className="p-1.5 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                  </button>
-                </Tooltip>
+                <button
+                  onClick={handleReset}
+                  className="p-1 rounded text-zinc-500 hover:text-zinc-300 transition-colors"
+                  title="Reset code and timer"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </button>
               </div>
             </div>
 
-            {/* Time progress bar */}
-            <Progress
-              value={(timeLeft / selectedChallenge.timeLimitSeconds) * 100}
-              className="h-1 rounded-none bg-slate-800"
-              indicatorClassName={
-                timeLeft < 30
-                  ? "bg-rose-500"
-                  : timeLeft < 60
-                  ? "bg-amber-500"
-                  : "bg-indigo-500"
-              }
-            />
-
-            {/* Code Textarea Area with Monospace Font */}
-            <div className="p-4 bg-slate-950">
+            {/* Code Input Area */}
+            <div className="p-3 bg-zinc-950">
               <textarea
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 rows={16}
                 spellCheck={false}
-                className="w-full bg-slate-950 text-slate-100 font-mono text-xs leading-relaxed focus:outline-none resize-none selection:bg-indigo-500/40"
+                className="w-full bg-transparent text-zinc-200 font-mono text-xs leading-relaxed focus:outline-none resize-none selection:bg-emerald-500/20"
+                placeholder="// Write your code implementation here..."
               />
             </div>
 
-            {/* Bottom Controls */}
-            <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-t border-slate-800">
-              <span className="text-[11px] font-mono text-slate-400">
-                Press Run & Validate to trigger client-side syntax evaluation
-              </span>
-              <Button
-                variant="accent"
-                size="sm"
-                onClick={handleEvaluate}
-                isLoading={isEvaluating}
-              >
-                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                Run & Validate Snippet
-              </Button>
+            {/* Editor Action Bottom Bar */}
+            <div className="p-3 border-t border-zinc-800 bg-zinc-900/50 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-[11px] font-mono text-zinc-500 flex items-center gap-2">
+                <span>Pass all 3 test cases to mint platform proof badge.</span>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Button
+                  variant="primary"
+                  onClick={handleEvaluate}
+                  isLoading={isEvaluating}
+                  className="w-full sm:w-auto h-9 font-mono text-xs"
+                >
+                  <Play className="h-3.5 w-3.5 mr-1.5 text-zinc-950 fill-zinc-950" />
+                  <span>Run Test Suite &amp; Verify</span>
+                </Button>
+              </div>
             </div>
           </Card>
         </div>

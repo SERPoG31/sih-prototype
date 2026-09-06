@@ -35,10 +35,18 @@ export interface CertificateRecord {
   registryConfirmed?: boolean;
 }
 
+export interface ProductionSignals {
+  hasTypeScript: boolean;
+  hasCiCd: boolean;
+  hasDocker: boolean;
+  hasTesting: boolean;
+}
+
 export interface GitHubTelemetry {
   handle: string;
   avatarUrl?: string;
   isLive?: boolean;
+  isBenchmarkCache?: boolean;
   totalRepos: number;
   starsCount: number;
   contributionsThisYear: number;
@@ -47,6 +55,7 @@ export interface GitHubTelemetry {
   devTier: DevTier;
   verifiedAt: string;
   codeQualityScore: number; // 0-100
+  productionSignals?: ProductionSignals;
   recentActivity: { repo: string; commits: number; message: string }[];
 }
 
@@ -68,15 +77,27 @@ export interface BridgePathway {
   createdAt: string;
 }
 
+export interface ChallengeTestCase {
+  name: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  args: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  expected: any;
+  isSecret?: boolean;
+}
+
 export interface Challenge {
   id: string;
   title: string;
   skill: string;
+  category?: "Frontend" | "Backend" | "Cloud/DevOps" | "AI/ML" | "System Design" | "Database";
   difficulty: "Easy" | "Medium" | "Hard";
   timeLimitSeconds: number;
   instructions: string;
   starterCode: string;
+  functionName?: string;
   testCases: { inputDescription: string; expectedKeywordPatterns: string[]; hint: string }[];
+  executableTestCases?: ChallengeTestCase[];
   badgeName: string;
 }
 
