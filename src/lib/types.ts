@@ -180,6 +180,26 @@ export interface LetterOfRecommendation {
   issuedAt: string;
   cryptographicHash: string;
   verificationBadgeToken: string;
+  displayOnPortfolio?: boolean;
+}
+
+export interface CohortStudent {
+  id: string;
+  studentId: string;
+  name: string;
+  batch: string;
+  department: string;
+  college: string;
+  readinessScore: number;
+  devTier: DevTier;
+  verificationStatus: {
+    certificatesVerified: number;
+    totalCertificates: number;
+    githubQualityScore: number;
+    sandboxPassed: boolean;
+  };
+  lorsIssuedCount: number;
+  avatarUrl: string;
 }
 
 export interface MarketTrendSkill {

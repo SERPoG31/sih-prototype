@@ -14,6 +14,7 @@ import {
   FileCheck2,
   TrendingUp,
   Share2,
+  Building2,
 } from "lucide-react";
 import { Github } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
@@ -104,6 +105,17 @@ const NAV_SECTIONS = [
         label: "Proof Portfolio",
         icon: Share2,
         kbd: "P",
+      },
+    ],
+  },
+  {
+    title: "INSTITUTIONAL",
+    items: [
+      {
+        href: "/dashboard/evaluator",
+        label: "Evaluator Hub",
+        icon: Building2,
+        kbd: "E",
       },
     ],
   },

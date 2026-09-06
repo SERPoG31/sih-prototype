@@ -7,10 +7,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
 
     const studentName = body.studentName || "Arjun Kumar";
-    const studentId = body.studentId || "CS23B044";
+    const studentId = body.studentId || "2026-CS-041";
     const college = body.college || "Indian Institute of Technology, Madras";
-    const evaluatorName = body.evaluatorName || "Dr. K. Ramanathan";
-    const evaluatorTitle = body.evaluatorTitle || "Head of Training & Placements";
+    const evaluatorName = body.evaluatorName || "Dr. Sunita Rao";
+    const evaluatorTitle = body.evaluatorTitle || "Dean of Academic Affairs & TPO";
     const companyOrDept = body.companyOrDept || "Department of Computer Science and Engineering";
     const ratings = body.ratings || {
       technicalProficiency: 5,

@@ -4,12 +4,14 @@ import React, { createContext, useContext, useState, useMemo, useEffect } from "
 import {
   BountyChallenge,
   CertificateRecord,
+  CohortStudent,
   GitHubTelemetry,
   LetterOfRecommendation,
   PersonaProfile,
   SkillNode,
 } from "@/lib/types";
 import {
+  COHORT_STUDENTS,
   DEMO_PERSONAS,
   INITIAL_BOUNTIES,
   INITIAL_CERTIFICATES,
@@ -27,6 +29,7 @@ interface StudentContextType {
   github: GitHubTelemetry;
   bounties: BountyChallenge[];
   lors: LetterOfRecommendation[];
+  cohortStudents: CohortStudent[];
   verifiedBadges: string[];
   readinessScore: number;
   // Actions
@@ -47,6 +50,7 @@ interface StudentContextType {
   ) => void;
   awardBadge: (badgeName: string) => void;
   addIssuedLOR: (lor: LetterOfRecommendation) => void;
+  toggleLORPortfolioDisplay: (lorId: string) => void;
   resetToDefaults: () => void;
 }
 
@@ -246,6 +250,22 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     awardBadge(`Cryptographic LOR by ${lor.evaluatorName}`);
   };
 
+  const toggleLORPortfolioDisplay = (lorId: string) => {
+    setLors((prev) => {
+      const updated = prev.map((lor) => {
+        if (lor.id === lorId) {
+          return {
+            ...lor,
+            displayOnPortfolio: lor.displayOnPortfolio === false ? true : false,
+          };
+        }
+        return lor;
+      });
+      persistState("skillnexus_lors", updated);
+      return updated;
+    });
+  };
+
   const resetToDefaults = () => {
     setCurrentPersona(DEMO_PERSONAS[0]);
     setSkills(INITIAL_SKILLS);
@@ -303,6 +323,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
         github,
         bounties,
         lors,
+        cohortStudents: COHORT_STUDENTS,
         verifiedBadges,
         readinessScore,
         addVerifiedSkill,
@@ -311,6 +332,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
         recordBountyScore,
         awardBadge,
         addIssuedLOR,
+        toggleLORPortfolioDisplay,
         resetToDefaults,
       }}
     >
@@ -327,5 +349,6 @@ export function useStudentContext() {
   return context;
 }
 
-// Alias to adhere strictly to instructions
+// Aliases to adhere strictly to instructions
 export const useStudentProfile = useStudentContext;
+export const useStudent = useStudentContext;

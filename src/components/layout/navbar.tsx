@@ -27,6 +27,7 @@ const PATH_TITLES: Record<string, string> = {
   "/bounties": "Bounties",
   "/dashboard/team-match": "Team Match",
   "/dashboard/lor": "Proof LOR",
+  "/dashboard/evaluator": "Evaluator Hub",
   "/dashboard/market": "Market Radar",
   "/p/arjun-kumar": "Portfolio",
 };
